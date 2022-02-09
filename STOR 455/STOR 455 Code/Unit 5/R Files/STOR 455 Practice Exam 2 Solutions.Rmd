@@ -1,0 +1,220 @@
+---
+title: "STOR 455 Practice Exam Solutions"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r message=FALSE, warning=FALSE}
+library(readr)
+library(leaps)
+library(bestglm)
+library(MASS)
+
+BirthWeight <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/BirthWeight.csv")
+abalone_train <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/abalone_train.csv")
+abalone_test <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/abalone_test.csv")
+
+```
+
+#### Question 1 ####
+
+Low birth weight is an outcome that has been of concern to physicians for years. This is due to the fact that infant mortality rates and birth defect rates are very high for low birth weight babies. Behavior during pregnancy (including diet, smoking habits, and receiving prenatal care) can greatly alter the chances of carrying the baby to term and, consequently, of delivering a baby of normal birth weight. Data were collected at Baystate Medical Center, Springfield, Massachusetts, in 1986 for variables (shown in the table below) that have been shown to be associated with low birth weight in the obstetrical literature. 
+
+Variable | Description
+---------|-------------------------------
+low   | indicator of child's birth weight less than 2.5 kg.
+age   | mother's age in years.
+lwt   | mother's weight in pounds at last menstrual period.
+race  | mother's race (1 = white, 2 = black, 3 = other).
+smoke | smoking status during pregnancy.
+ptl   | number of previous premature labours.
+ht    | history of hypertension
+ui    | presence of uterine irritability.
+ftv   | number of physician visits during the first trimester.
+bwt   | child's birth weight in grams.
+
+A)  Construct and plot a model using the indicator for a child's low birth weight, _low_,  as the response variable, and the mother's weight in pounds at last menstrual period, _lwt_, and the predictor. 
+
+```{r}
+mod1A=glm(low~lwt, data=BirthWeight, family="binomial")
+plot(jitter(low, amount=.1)~lwt, data=BirthWeight)
+
+logit = function(B0, B1, x)
+{
+  exp(B0+B1*x)/(1+exp(B0+B1*x))
+}
+
+B0 = summary(mod1A)$coef[1]
+B1 = summary(mod1A)$coef[2]
+
+curve(logit(B0, B1, x),add=TRUE, col="red")
+```
+
+B)	Construct a model using the indicator for a child's low birth weight, _low_,  as the response variable, and the mother's weight in pounds at last menstrual period, age, smoking status during pregnancy, and race as the predictor variables.
+
+```{r}
+mod1B=glm(low~lwt+age+smoke+factor(race), data=BirthWeight, family="binomial")
+```
+
+C)	Is there evidence to suggest that the model constructed in part (B) is significantly better than the model constructed in part (A)? Conduct the appropriate hypothesis test. State hypotheses, and provide a conclusion in the context of the data. _6 pts_
+  
+>Null: The coefficients for the variables age, smoke, and (both dummy) races are 0;   
+Alternative: The coefficients for at least one of the variables age, smoke, and race are not 0.   
+>Statistically significant evidence suggests that at least one of the additional terms has a nonzero coefficient, thus making for a better model than the one with a single predictor.   
+
+```{r}
+anova(mod1A, mod1B, test="Chisq")
+
+#You may instead examine the summaries of these models to find the difference between the residual deviances, and compare this G statistic to the chi-squared distribution with 4 df.
+
+summary(mod1A)
+summary(mod1B)
+
+G = summary(mod1A)$deviance - summary(mod1B)$deviance
+1 - pchisq(G, 4)
+```
+
+D) Use one of the model selection procedures covered in class to determine the best model to predict the indicator for a child's low birth weight, _low_.
+
+>The "best" models produced each way look a bit different, since AIC and BIC values are not directly comparable. Each method has positives and negatives. The models are quite different! BIC penalizes model complexity more heavily, hence the "best" models have fewer terms.
+
+```{r}
+#With bestglm
+
+# Must factor race so it is considered categorical
+
+BirthWeight$race = as.factor(BirthWeight$race)
+
+# Must move low to last column and remove bwt. 
+
+# bwt is the baby's birth weight, which will directly correspond
+# to low and cause an error. When predicting if a baby has low 
+# birth weight, you won;t know their birth weight first
+
+BirthWeight_forbestglm = BirthWeight[,c(2:9, 1)]
+head(BirthWeight_forbestglm)
+
+#This line is sometimes need to restore structure to the dataframe
+BirthWeight_forbestglm = as.data.frame(BirthWeight_forbestglm)
+
+bestglm1D = bestglm(BirthWeight_forbestglm, family=binomial)
+
+bestglm1D$BestModels
+```
+
+```{r}
+#With stepAIC
+
+BirthWeight_foretepAIC = BirthWeight[1:9]
+
+# I factored the variable race first above. 
+# You  could have factored it inside of the glm() function.
+
+mod1D = glm(low~., data=BirthWeight_foretepAIC, family="binomial")
+none = glm(low~1, data=BirthWeight_foretepAIC, family="binomial")
+
+# You could have dine this with backwards or forwards as well.
+
+stepAIC(none, scope = list(upper = mod1D), trace=0)
+```
+
+#### Question 2 ####
+
+Abalone are marine gastropod molluscs, which means they are marine snails.The age of abalone is determined by cutting the shell through the cone, staining it, and counting the number of rings through a microscope -- a boring and time-consuming task. Other measurements, which are easier to obtain, are used to predict the age. Further information, such as weather patterns and location (hence food availability) may be required to solve the problem.
+
+Variable | Description
+---------|-------------------------------
+Sex      | M, F
+Length   | longest shell measurement in mm
+Diameter | perpendicular to length in mm
+Height   | with meat in shell in mm
+Whole weight | whole abalone in g
+Shucked weight | weight of meat in g
+Viscera weight | gut weight (after bleeding) in g
+Shell weight | after being dried in g
+Rings    | number of rings
+
+A)  Construct a model to predict abalones' age (using _rings_ as the response) with the lowest Mallow's Cp using any/all of the variables in the _abalone train_ dataset. Do not use transformations, or second or greater order terms, or perform an analysis of the residuals.  
+
+```{r}
+# model with regsubsets
+
+regsubsets2A=regsubsets(rings~., data=abalone_train)
+
+source("https://raw.githubusercontent.com/JA-McLean/STOR455/master/scripts/ShowSubsets.R")
+ShowSubsets(regsubsets2A)
+
+mod2A = lm(rings~length+height+weight_whole+weight_shucked+weight_viscera, data=abalone_train)
+
+# model with step - produces the same best model
+
+none2 = lm(rings~1, data=abalone_train)
+full = lm(rings~., data=abalone_train)
+MSE = (summary(full)$sigma)^2
+
+step(none2,scope=list(upper=full),scale=MSE, trace=0)
+
+#model with forward - produces slightly different model
+
+step(none2,scope=list(upper=full),scale=MSE, direction="forward", trace=0)
+
+#model with backward - produces the same best model
+
+step(full,scale=MSE, trace=0)
+```
+
+B)  A second dataset, abalone_test, contains additional data for 500 more abalone. Use this dataset, and your model constructed in part (A), to perform a cross validation analysis of your model. Calcuate and comment on the cross-validation correlation, shrinkage, and analysis of holdout residuals. Does the model constructed in part (A) appear to be similarly effective for predicting the number of rings for abalone?
+
+> Holdout residual mean relatively close to zero (close is relative)  
+Holdout standard deviation is very similar to the standard error of the regression line for the original model constructed from the training data.    
+The shape of the holdout residulas is approximately normally distributed, but might indicate a slight bias and the center seems to be shifted left.         
+Shrinkage is near 0.10, which isn't as small as it could be, but suggests that the model predicts the new data similarly as well as the old.    
+
+```{r}
+fit = predict(mod2A, abalone_test)
+
+holdout_residuals = abalone_test$rings - fit
+
+mean(holdout_residuals)
+sd(holdout_residuals)
+hist(holdout_residuals)
+
+summary(mod2A)
+
+cv_corr = cor(fit, abalone_test$rings)
+
+summary(mod2A)$r.squared - cv_corr^2
+```
+
+C)  Linearity is an issue in any abalone model that uses the various measures of weight to predict the number of rings. Would a polynomial model be more appropriate? Contruct a quadratic model using _rings_ as the response and the _weight whole_ as the predictor. Plot the data and the curve on the same axes. Use the _abalone train_ dataset.   
+
+```{r}
+mod2C = lm(rings~weight_whole+I(weight_whole^2), data=abalone_train)
+
+summary(mod2C)
+
+a = summary(mod2C)$coef[3,1]
+b = summary(mod2C)$coef[2,1]
+c = summary(mod2C)$coef[1,1]
+
+plot(rings~weight_whole, data=abalone_train)
+curve(a*x^2 + b*x + c, add=TRUE, col="red")
+```
+
+D)  Consider a model that uses the log( _rings_ ) as the response variable. The predictor variables for the model are _diameter_, _length_, _sex_, and the interactions between _sex_ and each other predictor variable. Perform a hypothesis test to determine if the model including the interaction terms is significantly better than a model including the same variables but without the interactions. Include the hypotheses and conclusion.      
+
+> null: coefficients for the interaction terms are 0;   
+alternative: the coefficients for at least one interaction term is nonzero.      
+Since the p-value is small, there is significant evidence to suggest that at least one of the interaction terms have a nonzero coefficient.    
+
+    
+```{r}
+mod2D1 = lm(log(rings)~length+diameter+sex+length*sex+diameter*sex, data=abalone_train)
+
+mod2D2 = lm(log(rings)~length+diameter+sex, data=abalone_train)
+
+anova(mod2D2, mod2D1)
+```
+

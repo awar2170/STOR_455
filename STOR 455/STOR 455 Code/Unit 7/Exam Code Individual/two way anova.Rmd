@@ -1,0 +1,57 @@
+---
+title: "R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+---
+
+```{r}
+library(readr)
+
+Sleepstudy = read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/SleepStudy.csv")
+```
+```{r}
+Sleepstudy
+summary(Sleepstudy)
+```
+1) Construct a two-way ANOVA model for the mean GPA in  the dataset, _GPA_, using the _LarkOwl_ and _Stress_ as the predictors. Include the output showing the ANOVA table. Comment on what this output tells you about the GPA across college stduents. Provide formal hypotheses, p-values, and conclusions.
+
+```{r}
+amodA = aov(GPA~LarkOwl+Stress, data=Sleepstudy)
+summary(amodA)
+```
+
+Hypotheses:
+
+H0: μ1 = μ2 = μ3 (1= Lark, 2 = Owl, 3= Neither) (Mean GPA across LarkOwl status are all same)
+Ha: Some μi != μk (There is at least one mean GPA of one LarkOwl status that is different from the mean GPA of another LarkOwl status)
+
+P-value: 0.262
+
+Conclusion:
+Because p-value is not small enough (0.262), we fail to reject the null hypothesis. Mean GPA across LarkOwl statuses are all same.
+
+Hypotheses:
+
+H0: α1 = α2 = 0 (1 = Normal, 2 = High) (The affect for both stress scores are zeros)
+Ha: One of αi != 0 (There is at least one stress score that does not have zero for the affect)
+
+p-value: 0.012
+
+Conclusion: Because our p-value is small enough (0.012), we reject the null hypothesis. There is at least one stress score that does not have zero for the affect. 
+
+
+2)  Construct residual plots and comment on the conditions of equality of variances and normality of residuals for the model that you created. 
+
+```{r}
+amodA
+plot(amodA, 1:2)
+tapply(Sleepstudy$GPA, Sleepstudy$LarkOwl, sd)
+tapply(Sleepstudy$GPA, Sleepstudy$Stress, sd)
+```
+
+Variances: In general, we have constant variances, but as fitted values increase, the variances (vertical distances) are decreasing. In addition, the standard deviations for different combinations of LarkOwl and Stress predictors are roughly similar. 
+
+Normality: The normal Q-Q line shows some skewness on the left tail. 
+
+

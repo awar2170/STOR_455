@@ -1,0 +1,363 @@
+---
+title: "STOR 455 Class 22 R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+---
+
+```{r}
+library(readr)
+library(Stat2Data)
+library(car)
+
+data("Houses")
+data("Perch")
+
+StateSAT <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/StateSAT.csv")
+Pulse <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/Pulse.csv")
+```
+
+```{r}
+head(Perch)
+```
+
+
+__Types of “Unusual” Points in SLM__
+-Outlier: A data point that is far from the regression line.
+-Influential point: A data point that has a large effect on the regression fit. 
+
+How do we measure “far”? 
+How do we measure “effect on the fit”? 
+
+- SOme things are the same and some are different when thinking about multiple linear regression 
+- the outliers are about the same think about 
+- the influential point are baout the same in the multipel as well,, but keep cook's distance plot as the thing 
+
+__Detecting Unusual Cases - Overview__
+1. Compute residuals
+	“raw”, standardized, studentized
+2. Plots of residuals (or std. residuals)
+	Boxplot, scatterplot, normal plot
+3. Leverage
+	Unusual values for the predictors
+4. Cook’s distance
+	Cases with large influence
+
+__Standardized Residuals__
+- DOESNT CHANGE WITH SIMPLE AND MULTIPLE LINEAR REGRESSION 
+For residuals:  mean=0 and std. dev. ≈𝜎^_𝜀
+Standardized Residual ~~ almost = (𝑦_𝑖−𝑦^)/𝜎^_𝜀 
+- Look for values beyond +/-2 (mild) or beyond +/-3 
+
+Definition: The standardized residuals are:
+𝑠𝑡𝑑.𝑟𝑒𝑠_𝑖=(𝑦_𝑖−𝑦^_𝑖)/(𝜎^_𝜀 √(1−ℎ_𝑖 ))
+
+Hi = Leverage 
+
+__Studentized Residuals__
+- DOESN"T CHANGE WITH SIMPLE AND MUTIPLE LINEAR REGRESSION 
+- Better IDea of influence
+Definition: The studentized residuals are:
+stud res = (y-yhat)/(stderror*sqrt(1-hi))
+stederror = using model fit without ith case 
+
+__Leverage in Simple Linear Regression__
+- HARDER TO THINK ABOUT IN MULTIPLE PREDICTIORS 
+- if far of the L orR of the model, then you caould have the odel tilted towards you 
+- Predictors on many axies tilting in different ways 
+- a point could have a lot of leverage on one variable specifically 
+- how does this change? 
+
+**For a simple linear model:** ℎ_𝑖 =  1/𝑛+  〖(𝑥_𝑖− 𝑥^)〗^2/(∑▒〖(𝑥_𝑖− 𝑥^)〗^2 )
+
+∑▒ℎ_𝑖 =∑▒1/𝑛+(∑▒〖(𝑥_𝑖−𝑥^)^2 〗)/𝑆𝑆𝑋 = 1+ 1 = 2
+
+- **For multiple linear regression** 
+Look for: ℎ_𝑖 >  2(  2/𝑛  ) OR ℎ_𝑖 >  3(  2/𝑛  )
+
+__Leverage in Multiple Regression__
+For a multiple regression with k predictors:
+∑▒ℎ_𝑖 =𝑘+1
+"\"Typical\" leverage"=(𝑘+1)/𝑛
+Look for: hi > (2(k+1))/n OR hi > (3(k+1))/n
+
+__Leverage in Multiple Regression: Perch__
+Perch_lm = lm(Weight~Length+Width+Width*Length, data=Perch)
+
+- plot(Perch_lm*$*residuals~Perch_lm$fitted.values)
+abline(0,0)
+
+```{r}
+# model to predict weight by lenght, wdiget and the interaction between teh two variables
+Perch_lm = lm(Weight~Length+Width+Width*Length, data=Perch)
+summary(Perch_lm)
+# Summary tells us 
+# length doesn tappear to be a good preictor 
+# The interaction appears sig though; but if we want to keep the interaction term, then we have to keep length 
+# Multiple R squared says we are explain 98% in this model 
+# WE also need to look at the model conditions so we can plot it 
+
+# DO a regression analysis 
+
+# Plots for residual analysis
+plot(Perch_lm)
+# Linear looks pretty good 
+# Constance variance is bad; fish that are lower appears to be fanning pattern 
+# TIghtly packed prediction compred to what is seen # Constance variance is not good 
+# Normal; prettuy big issues 
+# WE could try and ocrrect this iwth transofmraitons, log the weight would probably help this because it tend to calm right side skews 
+# WE want to look at what points are having a lot fo infuence on this model 
+```
+
+__Leverage in Multiple Regression: Perch__
+```{r}
+# Double and triple the average leverage for 3 predictors
+# Tells you what kind of points have the potential to have leverage 
+# These are the big boundaries for leverage 
+2*(3+1)/56
+3*(3+1)/56
+
+# Tells us which values in the dataset are over the highest boundary for leverage 
+# Will give you waht is true 
+Lev_indices = which(hatvalues(Perch_lm) >= 3*(3+1)/56)
+
+#Two cases with high leverage
+# will tell you which of the perch values are potiential high leverage fish 
+# What are diferent about these fish? 
+Perch[Lev_indices,]
+
+# Have fish 1 and 40 
+# Fish 1 is kinda small 
+# In teh slides we see how this are sorted differently 
+```
+
+__Leverage in Multiple Regression: Perch__
+```{r}
+#boxplots for the three variables in the model
+#points() is used to show the values for cases 1 and 40 that have high leverage
+#cex=3 is the type of symbol to show in the plot
+
+# Tehse are box plots 
+# first look at weight and length variable and made a box plot for each 
+# Then drew some points for teh specific fish 
+# The seond line points lenght 1 = the fish that is number 1 
+# did the same thing for the 40th fish in blue 
+
+# Fish 1 appears teh smallest fish in teh data 
+# Fish 40 appears to be in the middle 50 in teh box 
+# Fish 1 also appears to be the lowest width of a fish 
+# FIsh 40 is a really high fish; it si pretty fat 
+
+# DO the same thign for the intearction term; fish 1 appears to still be an aissue 
+# Maybe fish 1 has influenc eon the model? 
+# WE dont kno whtis yet, it might be on the prediciton line 
+# If the regression line is righ tnext to it, it's not going to have influence, we dont know yet until we run more tests 
+
+boxplot(Perch$Length, main="Length")
+points(Perch$Length[1], col="red", cex=3)
+points(Perch$Length[40], col="blue", cex=3)
+
+boxplot(Perch$Width, main="Width")
+points(Perch$Width[1], col="red", cex=3)
+points(Perch$Width[40], col="blue", cex=3)
+
+boxplot(Perch$Length*Perch$Width, main="Length*Width")
+points(Perch$Length[1]*Perch$Width[1], col="red", cex=3)
+points(Perch$Length[40]*Perch$Width[40], col="blue", cex=3)
+# Gives you an idea of wehre things are 
+# But you could have a big prediction difference between one variable and the other might not
+```
+
+__Cook’s Distance__
+How much would the fit change if one data value were omitted?
+
+Cook's Di = (((std.resi)^2)/(k+1))*(hi/(1-hi))
+Di increases with either poor fit (std.resi) and high leverage (hi). 
+
+1. Compare to other Di’s.
+2. Study any case with Di > 0.5; worry if Di > 1.0.
+
+```{r}
+# IF something has influence, but why 
+# Is it due to outlier or other things? 
+# Just use cook's distance 
+
+# can ssee that fish 1 has high leveerage but no influence 
+# Fish 52 and 55 appear to be right on the outside or righ ton the line 
+# the two verical lines are the cut off for big leverages 
+
+# Shows 3 cases with high Cook's Distance
+Cooks_indices = which(cooks.distance(Perch_lm) >= 0.5)
+# use the same logic as abouve to see which points are tur for being over the 0.5 cook's distance 
+
+# Below tells you which points in perch has a cook's distance of over 0.5, which means that they have high influence 
+Perch[Cooks_indices,]
+# we see it's teh heavy fish with high weight that have influence 
+
+# ',5' shows only the Cook's plot and not other residual diagnostics plots
+plot(Perch_lm,5)
+
+# 'v' draws a vertical line
+# lty chooses the type of line to draw (dashes)
+abline(v = 2*(3+1)/56, col="blue", lty=3)
+abline(v = 3*(3+1)/56, col="blue", lty=3)
+```
+
+How to compre when we add a thing to the model, does any specific point have influence or is that teh trend of the data overall?
+
+- Anwser this witht eh houses dataset 
+
+__Houses__
+Response variable:   Y = House price
+Predictors:  X1 = Size;  X2 = Lot (size of the lot)
+
+```{r}
+head(Houses)
+```
+
+__Fitting the Multiple Regression Model__
+```{r}
+plot(Price~Size+Lot, data=Houses)
+
+Houses.lm=lm(Price~Size+Lot, data=Houses)
+summary(Houses.lm)
+# based on teh slope it doesnt appear that size or ot is a good predictor forom price 
+# looking at anova, we get that its fine 
+# There is multicollinearity here 
+```
+
+__Added Variable Plot__
+Say we want to add teh predcitor z, but want to see its impact 
+You have to comapre teh residuals of the model with the z vs not with z 
+SO find teh difference btween a mdoel with z vs without z 
+
+Basic idea:  For any single predictor Z …
+1. Fit a model for Y using all other predictors. Save residuals as error1 (what the other predictors don’t know about Y).
+
+2. Fit a model for Z using all other predictors. Save residuals as error2 (what the other predictors don’t know about Z). 
+
+3. Plot error1 vs. error2 (what’s unique to Z that explains new variability in Y). 
+
+```{r}
+# 1. make a model with size not predited by lot 
+PrLot.lm = lm(Price~Lot, data = Houses)
+#2. Size predicted by lot 
+SizeLot.lm = lm(Size~Lot, data = Houses)
+
+
+# The residuals from this model—PrLot.lm —are saved as PrLot.lm$resid
+plot(PrLot.lm$resid~SizeLot.lm$resid)
+# The residuals from this model— SizeLot.lm  —are saved as  SizeLot.lm$resid
+
+# Plot PrLot.lm$resid vs. SizeLot.lm$resid
+model = lm(PrLot.lm$resid~SizeLot.lm$resid)
+abline(model)
+summary(model)
+#Is there a relationship? 
+# Equation of the line: 
+# Looks familliar because the size estimate for the summary of the model above is the 
+# New model fo teh residuals has an incet  fo 0 and a slope of 23, and oges through gthe orignas, have teh same slope as size by lot 
+# Do we see anythign wehre some values may be skewing out data or does it appear out thing follows the trend well 
+# Then if there are no changes, then we can say tehre may not be a big influence 
+# If we see something very different, then we can see that there may be useful to add the value to the newer model 
+```
+
+__Pulse: More than Two Predictors__
+Response variable:   Y = Active pulse
+Predictors:  X1 = Resting pulse
+ 	         X2 = Hgt
+                   X3 = Sex (0 = M, 1 = F)
+
+```{r}
+# Predicts the active heart rate by using rest, height and sex 
+Pulse.lm = lm(Active~Rest+Hgt+Sex, data=Pulse)
+summary(Pulse.lm)
+# The summary tells us that we have an incept of 13.4 
+# base don this we probably wont use these predictors 
+# Height and sex doent appear to be useful int eh model 
+# What if we make a varibale plot do some variables have extreme values that will effect the mdoel in some way? 
+
+plot(Active~Rest+Hgt+Sex, data=Pulse)
+```
+
+__Pulse: More than Two Predictors__
+This idifferes from anova, becaus we are controlling which variables are dropped and stay 
+WE are also not dropping them all, we are only cycling through what different variable combinations look like 
+```{r}
+#Want to make a plot where actiec is predicted byt weverthing 
+Active.Rest.lm = lm(Active~Hgt+Sex, data=Pulse)
+Rest.lm = lm(Rest~Hgt+Sex, data = Pulse)
+plot(Active.Rest.lm$resid~Rest.lm$resid)
+mod1 = lm(Active.Rest.lm$resid~Rest.lm$resid)
+abline(mod1)
+summary(mod1)
+
+# Where active is predicted by rest and sex, not hgieht 
+Active.Hgt.lm = lm(Active~Rest+Sex, data=Pulse)
+Hgt.lm = lm(Hgt~Rest+Sex, data = Pulse)
+plot(Active.Hgt.lm$resid~Hgt.lm$resid)
+mod2 = lm(Active.Hgt.lm$resid~Hgt.lm$resid)
+abline(mod2)
+summary(mod2)
+
+# Then active is predicted by rest and hight 
+Active.Sex.lm = lm(Active~Rest+Hgt, data=Pulse)
+Sex.lm = lm(Sex~Rest+Hgt, data = Pulse)
+plot(Active.Sex.lm$resid~Sex.lm$resid)
+mod3 = lm(Active.Sex.lm$resid~Sex.lm$resid)
+abline(mod3)
+summary(mod3)
+
+# We see that there doesn't appear much difference when looking at teh sumamries of the the predictors 
+# If we want to see if a point has influence because of all the model vs it just being one varibale, the added variable plot will tell you if its one variable that is being extra or if it is just the whole dataset 
+```
+
+```{r}
+# Now we check each of these for leverage and influence 
+plot(mod1, 5)
+
+plot(mod2, 5)
+
+plot(mod3, 5)
+```
+
+__Added Variable Plots__
+HOW TO DO THE ADDED VARIBALE PLOT EASILY AND QUICKLY IN R 
+```{r}
+library(car)
+
+# Give the lienar model and what you want to look at as the added variabe 
+# So it looks at the thing in pulse.lm, but takes out rest in the first one and then compares what the residual plots would look like between those two 
+avPlot(Pulse.lm, "Rest") # need to give the string name of the variable in the lm model you're referencing from the first argument 
+avPlot(Pulse.lm, "Hgt")
+avPlot(Pulse.lm, "Sex")
+
+avPlots(Pulse.lm, ~.) # This is an avplot for all of the variables in the Pulse.lm linear regression model
+# This iwll make an avPlot for all the variables in teh pulse.lm linear regression model so you don't have to 
+# THIS IS PLURARL 
+# Its not super great in how it does it 
+# YOu have to do it by all the predictors
+# issues: it's really hard to read it's really jumbled, you can read it 
+# All the different plots are put in to one plot 
+# This is okay for 3, but the more we get teh less nice it will be 
+# So looka t teh SAT data for what this looks like less nice 
+```
+
+__StateSAT: More than Two Predictors__
+```{r}
+StateSAT.lm = lm(SAT~., data=StateSAT[,c(2:8)])
+avPlots(StateSAT.lm, ~.)
+```
+
+```{r}
+variables = colnames(StateSAT)
+
+# This does the avPlot, but it cycles through for each variable in the dataset for ytou (or at least teh ones between 3 - 8 )       
+for(i in 3:8){
+  avPlots(StateSAT.lm, variables[i])
+}
+# With the for statemtne we can see teh same plots as writing them one by one, you can see if there are any extreme values by these plots that may be guiding these values 
+# WE dont see any in takers, but point 25 might draw the line down in some 
+# Point 22 have an influence in the SAT others, can guess 
+#State 29 - alaska
+```

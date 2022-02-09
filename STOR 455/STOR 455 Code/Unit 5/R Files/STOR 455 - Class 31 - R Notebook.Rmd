@@ -1,0 +1,207 @@
+---
+title: "STOR 455 Class 31 R Notebook"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r message=FALSE, warning=FALSE}
+library(readr)
+library(bestglm)
+library(MASS)
+
+insurance <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/insurance.csv")
+```
+__Issues with Insurance Data for bestglm__
+```{r}
+head(insurance)
+```
+Predict if people are going to get into a car accident 
+How likely that these people get in a car accident based on teh data we are working with 
+
+
+```{r}
+# If it sees a dollar sign or a comma, it changes things to a number like as.numeric 
+# So this makes us just have numbers 
+# Want 4 new variables in teh dataframe 
+Currency_Convert <- function(Field){
+  Field <- as.numeric(gsub("\\$|,","", Field))
+}
+
+#Change factors to numbers
+insurance$HOME_VAL_num = Currency_Convert(insurance$HOME_VAL)
+insurance$INCOME_num = Currency_Convert(insurance$INCOME)
+insurance$BLUEBOOK_num = Currency_Convert(insurance$BLUEBOOK)
+insurance$OLDCLAIM_num = Currency_Convert(insurance$OLDCLAIM)
+
+#remove unneeded variables
+# Got rid of them because it would be not known at teh time we wanted to make prediction 
+# But we now technically have this data 
+# So we are jus getting rid of it 
+insurance.1 = within(insurance, 
+                     {INDEX = NULL
+                     TARGET_AMT = NULL
+                     HOME_VAL = NULL
+                     INCOME = NULL 
+                     BLUEBOOK = NULL
+                     OLDCLAIM = NULL})
+
+
+head(insurance.1) 
+# Now we have numeric data where we need it 
+```
+
+```{r}
+insurance.2 = insurance.1[,c(2:24,1)] 
+# For best glm, we want the last column of the data as teh predicted, so we need that to be at t eh end of the dataframe 
+# We want target flag at the end 
+head(insurance.2)
+```
+
+
+```{r}
+#Sad trombone
+insurance.2 = as.data.frame(insurance.2)
+# bestglm(insurance.2, family=binomial)
+# This doesn't work because the structure of teh dataframe is maniuplated a bit weird; have to make it a dataframe; it still wont make it work all the time, but it might fix it 
+# THis time it wont fix this issue 
+```
+
+```{r}
+# So to fix that, we will use dplyr to make all the character vectors as factors 
+library(dplyr)
+insurance.2.1 = insurance.2 %>% mutate_if(is.character, factor)
+head(insurance.2.1)
+```
+
+```{r}
+#Sadder trombone
+insurance.2.1 = as.data.frame(insurance.2.1)
+#bestglm(insurance.2.1, family=binomial)
+# When trying again, it doesn't appear to work still; so we have to try something different 
+# NEw error, Error: p = 23, much be <= 15 
+# tells us that there are too many variables, so we can't run it 
+```
+
+When best glm doesn't work, let's use different stepwise.  We will do AIC Stepwise 
+```{r}
+full_insurance = glm(TARGET_FLAG~., data=insurance.1, family="binomial")
+summary(full_insurance)
+```
+
+```{r}
+#More sad trombone
+#stepAIC(full_insurance)
+# Says that some blank values are messing us up, so lets get rid of them 
+```
+
+
+```{r}
+insurance.forstepAIC = na.omit(insurance.1) # Gets rid of the na values 
+
+full_insurance.2 = glm(TARGET_FLAG~., data=insurance.forstepAIC, family="binomial")
+
+# Given a full model - Backwards selection is the default
+stepAIC(full_insurance.2) 
+```
+
+```{r}
+# trace=FALSE will show only the final model, not each step.
+# Looks at new insurance data 
+# Big model at teh end 
+stepAIC(full_insurance.2, trace=FALSE) 
+```
+
+ 
+```{r}
+final_model_backwards=stepAIC(full_insurance.2, trace=FALSE) 
+
+summary(final_model_backwards)
+
+```
+
+
+```{r}
+none = glm(TARGET_FLAG~1, data=insurance.forstepAIC, family="binomial")
+
+# Tell it to do forward and stepwise below for an AIC model 
+final_model_forwards = stepAIC(none, scope=list(upper=full_insurance.2), direction="forward", trace=FALSE)
+final_model_both = stepAIC(none, scope=list(upper=full_insurance.2), direction = "both", trace=FALSE)
+```
+
+```{r}
+summary(final_model_forwards)
+```
+
+
+```{r}
+summary(final_model_both)
+```
+
+
+
+```{r}
+anova(final_model_backwards, test="Chisq")
+```
+
+```{r}
+G = final_model_backwards$null.deviance - final_model_backwards$deviance
+Gdf = final_model_backwards$df.null - final_model_backwards$df.residual
+
+1-pchisq(G, Gdf)
+```
+
+```{r}
+# how likely this random person that we made up would be to get into an accident 
+
+some_person = data.frame(     
+          
+  KIDSDRIV = 0,      
+  KIDSDRIV = "No",
+  PARENT1 = "No",
+  MSTATUS = "z_No",       
+  SEX="z_F",           
+  EDUCATION = "Masters",     
+  JOB= "Professional",           
+  TRAVTIME = 15,      
+  CAR_USE = "Private",       
+  TIF = 5,           
+  CAR_TYPE = "z_SUV",       
+  RED_CAR = "no",       
+  CLM_FREQ = 0,       
+  REVOKED = "No",       
+  MVR_PTS = 0,       
+  URBANICITY = "Highly Urban/ Urban",     
+  HOME_VAL_num = 258000,
+  INCOME_num = 82000,  
+  BLUEBOOK_num = 16400,   
+  OLDCLAIM_num = 0
+)
+```
+
+```{r}
+# Predicts logodds
+# Using the final backwards model, this predicts how likely that the person we made up will get into an accident Put type = REsponse if you want probabilitiy 
+
+predict(final_model_backwards, some_person)
+```
+
+```{r}
+odds = exp(predict(final_model_backwards, some_person))
+
+odds/(1+odds)
+# Gets teh odds of getting into an accident 
+# Same as the predict probability function below 
+```
+
+```{r}
+# Predicts probability
+# this predicts the probability that the person we made up will get into an accident
+predict(final_model_backwards, some_person, type = "response")
+```
+
+```{r}
+predict(final_model_forwards, some_person, type = "response")
+predict(final_model_both, some_person, type = "response")
+```

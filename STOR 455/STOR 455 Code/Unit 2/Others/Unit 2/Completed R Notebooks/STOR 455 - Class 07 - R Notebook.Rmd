@@ -1,0 +1,88 @@
+---
+title: "STOR 455 Class 7 R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r warning=FALSE, message=FALSE}
+library(Stat2Data)
+
+data("LongJumpOlympics2016")
+data("PalmBeach")
+```
+
+```{r}
+GoldModel=lm(Gold~Year, data=LongJumpOlympics2016)
+
+plot(Gold~Year, data=LongJumpOlympics2016)
+abline(GoldModel)
+points(LongJumpOlympics2016$Year[16], LongJumpOlympics2016$Gold[16], col="red", pch=16)
+
+summary(GoldModel)
+```
+
+```{r}
+StanResidEst = GoldModel$resid/summary(GoldModel)$sigma
+
+StanResidEst - rstandard(GoldModel)
+```
+
+```{r}
+StanResid = GoldModel$resid/(summary(GoldModel)$sigma * sqrt(1 - hatvalues(GoldModel)))
+
+StanResid - rstandard(GoldModel)
+```
+
+```{r}
+2*(2/28)
+3*(2/28)
+
+hatvalues(GoldModel)
+```
+
+```{r}
+2*(2/28)
+3*(2/28)
+
+sort(hatvalues(GoldModel), decreasing = TRUE)
+```
+
+```{r}
+ElectionModel=lm(Buchanan~Bush,data=PalmBeach)
+plot(Buchanan~Bush,data=PalmBeach)
+abline(ElectionModel)
+points(PalmBeach$Bush[50], PalmBeach$Buchanan[50], col="red", pch=16)
+```
+
+```{r}
+2*(2/67)
+3*(2/67)
+head(sort(hatvalues(ElectionModel), decreasing=TRUE), n=10)
+
+# Defines new variable inside of the dataframe
+PalmBeach$Leverage = hatvalues(ElectionModel)
+
+PalmBeach[c(6,13,16,29,50,52),]
+```
+
+```{r}
+plot(Buchanan~Bush,data=PalmBeach)
+abline(ElectionModel, col="blue")
+
+NoPalmBeach=subset(PalmBeach,County!="PALM BEACH")
+ElectionModel_noPB=lm(Buchanan~Bush,data=NoPalmBeach)
+abline(ElectionModel_noPB, col="green")
+
+NoDade = subset(PalmBeach,County!="DADE")
+ElectionModel_noD=lm(Buchanan~Bush,data=NoDade)
+abline(ElectionModel_noD, col="red")
+```
+
+```{r}
+head(sort(cooks.distance(ElectionModel), decreasing=TRUE), n=5)
+
+plot(ElectionModel,5)
+abline(v = 4/67, col="blue", lty=3)
+abline(v = 6/67, col="blue", lty=3)
+```

@@ -1,0 +1,55 @@
+---
+title: "Group_Review"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r}
+library(readr)
+sleep = read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/SleepStudy.csv")
+head(sleep)
+```
+```{r}
+#Topic 4: ANOVA for simple linear regression
+#Question:Test the strength of the linear relationship between __GPA__ and __AverageSleep__ using ANOVA for regression. Include hypotheses and your conclusions in the context of the problem.
+
+```
+
+```{r}
+#Solution:
+mod1 = lm(GPA~AverageSleep, data = sleep)
+anova(mod1)
+#Null Hypothesis: The coefficient for AverageSleep is 0.
+#Alternative Hypothesis: The coefficient for AverageSleep is not 0.
+#Conclusion: According to the table, p-value is 0.3368, which is a really large number. Therefore, we fail to reject the null hypothesis and come to the conclusion that the coefficient for AverageSleep is 0.
+```
+
+```{r}
+#Topic 17: Test of significance for nested models
+```
+
+```{r}
+#Question_1:Construct a logistic model to predict if the student has an early class using Stress, AnxietyStatus, and the interaction between them as the predictor variables.
+```
+
+```{r}
+#Solution_1:
+mod2 = glm(EarlyClass~Stress+AnxietyStatus+Stress*AnxietyStatus,family = binomial, data = sleep)
+summary(mod2)
+```
+
+```{r}
+#Question2:Conduct a drop in deviance hypothesis test to determine the effectiveness of the interaction terms in the model constructed in the previous question. Cite your hypotheses, p-value, and conclusion in context.
+```
+
+```{r}
+#Solution2:
+reduced = glm(EarlyClass~Stress+AnxietyStatus,family = binomial, data = sleep)
+anova(mod2, reduced,test = "Chisq")
+#Null Hypothesis:The coefficient for the interaction terms is 0.
+#Alternative Hypothesis:The coefficient for the interaction terms is not 0.
+#Conclusion: According to the table, p-value is 0.07604, which is greater than 0.05. Therefore, we fail to reject the null hypothesis and come to the conclusion that the coefficient for interaction terms is 0.
+```
+

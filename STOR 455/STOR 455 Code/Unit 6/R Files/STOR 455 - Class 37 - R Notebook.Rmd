@@ -1,0 +1,448 @@
+---
+title: "STOR 455 - Class 37 - R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+---
+
+```{r message=FALSE, warning=FALSE}
+library(readr)
+
+Diet <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/Diet.csv")
+Glue <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/Glue.csv")
+Pulse <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/Pulse.csv")
+```
+__What’s an Interaction Effect?__
+**DEFINE:** An interaction effect occurs when a significant difference is present at a specific combination of factors.
+
+*Example* Y=GPA
+	Factor A = Year in School (FY, So, Jr, Se)
+	Factor B = Major (Psych, Bio, Math)
+
+FY is hard if alphaa1 < o (main effect)
+Bio is easy if B2 >0 (main effect)
+Jr in Math is hard if Y33 < 0 (interaction effect)
+
+There may be times where one factor by itself are not sig; there may not be a sig diff by year or major; we may see for certain years for certain majors that is differnet 
+
+__Factorial Design__
+*In the past:* We hae only needed one data point that looked at each combo of the factor levels; for teh exam and student we needed one score for exam and student; here we can expand that if we only have C different values 
+
+*Future* 
+Assume:  Factor A has K levels, Factor B has J levels.
+
+To estimate an interaction effect, we need more than one data value in each combination of factors.
+
+Let nkj = sample size in (k,j)th cell
+
+nkj = c
+
+c = 1 = randomized block design 
+c> 1 = blanaced factorial design 
+
+__Example: Glue Strength__
+Factor A:  Thickness (thin, moderate, heavy)
+Factor B:  Glue Type (plastic, wood)
+Factor B:  Glue Type (plastic, wood)
+
+Data: Plastic, Wood 
+Thin: 52 64, 72 60
+Moderate: 67 55, 78 68
+Heavy: 86 72, 43 51
+
+K = 3
+j = 2
+c = 2
+n = 12
+
+*Notes about the data* 
+- They are in newtons 
+- We could be using plastic or wood glue 
+- How much glue we use is the other factor (Thin, Moderate, Heavy)
+
+*Question of interest* Is there a dif in teh force reuired depending on the type of glue I use and/or a difference on how much glue I use? Is there an interaction? Is there some level of a combination that looks really different than the others and doesn't follow the trend? 
+
+*Looking at the data* 
+The thin and moderate force required, wood is higher until you get to heavy; a heavy amount of wood glue doesn't seem to be as strong 
+
+*We'll see:* there is some interaction going on between teh wood glue amount and the type of glue
+
+```{r}
+# Want to try and predict the force requried to pull these things apart by the thickness and type of glue in the data and also that interaction
+Glue_model = aov(Force ~ Thickness + Type + Thickness*Type, data=Glue)
+summary(Glue_model)
+# This gives more information than we wanted because it gives the first line as a test by thickness 
+# When we look at the itneraction, there is a sig level there; the SSQ for this is higher; Factor A and B are not sig on their own, but the interation is
+
+```
+
+__Two-way ANOVA Table (with interaction)__
+Header: Source, df, SS, MS, ts, p-value 
+Row1: FactorA, K-1, SSA, SSA/(K-1), MSA/MSE, BLANK
+Row2: FactorB, J-1, SSB, SSB/(J-1), MSB/MSE, BLANK 
+Row3: AxB, (K-1)(J-1), SSAB, SSAB/df, MSAB/MSE, BLANK 
+Row4: Error, JK(n-1), SSE, SE/df, BLANK, BLANK 
+Row5: total, n-1, SSY, BLANK--------->
+
+Ho: All alphak = 0 
+Ha: Some alphak != 0 
+
+Ho: All Bj = 0 
+Ha: Some Bj != 0 
+
+Ho: All ykj = 0 
+Ha: Some ykj != 0 
+
+*In the table above, we do not have evidence to say that there is impact from the glue type of thickness.  We don't have evidence to reject the null, but in the third case, we do have evidence that there is a sig interaction between these variables* 
+
+```{r}
+TukeyHSD(Glue_model)
+```
+__Interpreting Interaction__
+IF the two-way ANOVA indicates a significant interaction, plot the cell means vs. one factor with separate lines/symbols for the second factor
+
+Called a Cell means plot or INteraction plot 
+
+Cell Means: Plastic, Wood 
+Thin: 58.0, 66.0
+Moderate: 61.0, 73.0
+Heavy: 49.0, 47.0
+
+interaction.plot(FactorA,FactorB,Response)
+
+*Class NOtes* 
+- Will look at teh itneractions between teh groups and plot them by the force required along one axis if plastic or wood, then other; see the difference through this tabl instead of having two values in each cell, they're just averaged 
+- why don't we make this interaction plot factor A and factor B reponse, so type thickness force, but if we flip those teh axis will flip 
+
+*See below for example on the flipping axises* 
+
+**Plot 1: interaction.plot(Glue$Type, Glue$Thickness, Glue$Force)**
+- Looking at plastic and wood, then the force of the means for those 
+- each one of the lines is the differnce amount of thickness, so wherever the poitns are that's just the mean value 
+- under 60, 62 or so and a bit higher. 
+- we are looking at *are the trends as we go from plastic to wood similar for each level of thickness* 
+-- If they are similar, we expect lines t be similar in slope to eachother 
+**The size of the data has a big impact here** 
+- Small data is going to be skewed faster because it's mean, so if there's something out of wack, it's going to show more easily since mean isn't insoluated from outlies 
+
+- The heavy amount of thickness is very different
+*There is some kind of interaction betcause heavy has a different interaction thatn the other lines* 
+
+**Plot 2: interaction.plot(Glue$Thickness, Glue$Type, Glue$Force)** 
+- Same relationship from a different perspective 
+- Depending on what you're looking at, it might look better or worse
+- Moderate to thin: 
+-- Those lines look similar in solpe for wood and plastic 
+- - Heavy - Moderate the slope is different 
+*Doesn't show, but implied* 
+- Going from Heavy to thin, it would be the very different relationship 
+- Heavy to thin for one and thin to heavy to the other 
+*Sometimes you have to assume there is no interaction to see if there is a relationship in the data*
+
+```{r}
+interaction.plot(Glue$Type, Glue$Thickness, Glue$Force)
+```
+
+```{r}
+interaction.plot(Glue$Thickness, Glue$Type, Glue$Force)
+```
+__Looking back at the Diet Data__
+*Make a 2-way anova model with interaction* 
+- We made a thing by diet there were sig dif in the weight loss by which diet you were on
+- No sig dif by sex, 
+- Made a two-way model to see if dif by diet and sex when in the same model, found similar results 
+**One step further: 2-way with the interaction** 
+*Question Interest: Are tehre any sig dif in weight loss by diet depending on which sex you are?* 
+- Look at residuals and make these interaction plots to see where the sig difs are 
+
+*Diet Data* 
+- Looking at the table, we have 3 different Hypo tests here 
+
+- Assuming there's no effec ton the average weight change by diet, vs Ha: There is an effect; small p-value; 
+-- Type of diet shows sig there 
+
+- Sex has a high p-value, 
+Ho: Assume there is no effect on average weight loss based on sex 
+Ha: There is an effect on average weight loss based on sex
+
+P-vale 
+Conc: We dont have evidence to reject that 
+
+Interaction is below 0.05 level, so we are seeing a sig interaction between sex and diet, so tehre is some effect between what sex you are and which diet you are on 
+
+*Tukey* 
+- It's giving us 3 different outputs '
+1. Dif by diet for all poss combos; 
+2. dif by sex for all combos; and 
+3. dif for interactions 
+
+The only real difference is in one situation; all other pvalues are huge, except for 3-0 and 1-0 there was a big difference.
+
+**Question: What is 3-0 and what is 1-0?** 
+*Anwser: Zero is for women, and 3 = diet 3 and 1 = diet 1; there is sig dif in teh 3rd and 1st diet for women, but we are  not seeing this sig dif for men* 
+
+__Look at Resiudal analyss__ 
+- Nothing really stands out 
+- Check for constant variance, they are spread similarly; one group is a little more compact, so may be an issue there, but not too bad 
+- Normaility by QQPlot, some tail issues, but not too bad 
+
+__Interaction plot__ 
+- INteraction plot: sex on the horizontal axis:
+-- For diet 3, it looks like we have a dif relationship than for diet 1 for each of teh sexes
+
+```{r}
+Diet$weight_change <- Diet$weight6weeks - Diet$Preweight
+
+mod1 <- aov(weight_change ~ 
+              factor(Diet)+ 
+              factor(Sex)+
+              factor(Diet)*factor(Sex), 
+            data = Diet)
+
+summary(mod1)
+
+plot(mod1, 1:2)
+
+TukeyHSD(mod1)
+
+interaction.plot(Diet$Sex, Diet$Diet, Diet$weight_change)
+```
+
+__ANOVA via Dummy Regression__
+*Recall: For a single categorical factor with K levels*
+1. Create K-1 indicator (dummy) predictors
+2. Run regression with the dummy predictors
+3. Constant estimates the mean of the reference group
+4. Coefficients estimate how each other group differs
+5. ANOVA tables match (depending…)
+
+*NOtes* 
+- We are really just looking at regression 
+- If we wanted tot hink of these as regression models, we could do that, we just have to combine some ideas we are looking at
+*ANOVA MODEL FOR DIFFERENC EIN MEANS: ONE-WAY MODEL* 
+- That's the same as a regression model that is useing K-1 predictor variables, and each of those coeff would be some measure of how different that group is from the overall mean 
+
+*IF look at glue data, see below:* 
+- For a math standpoint, the below models are the same, the output is just different
+- There is no sig evidence by dif by just thickness
+- we did have it in terms of an interaction 
+- If we did this for 1,2, 2w/interaction we can build these eitherway with a linear or aov model and we are building teh same math thing 
+
+**How is this useful?** 
+- Because this is all just regression, we can see some slightly different relationships and think about this kind of analysis of difference in means after considering teh variability of other quanatitive variables as well in the model, not just categorical
+- So far we have looked at how much variability is explained by the type of glue vs some other things 
+- There might be quanatitive var we want to compare with as well 
+
+```{r}
+mod1 = aov(Force ~ Thickness, data=Glue)
+summary(mod1)
+
+mod2 = lm(Force ~ Thickness, data=Glue)
+anova(mod2)
+summary(mod2)
+```
+
+```{r}
+mod3 = aov(Force ~ Thickness + Type, data=Glue)
+summary(mod3)
+
+mod4 = lm(Force ~ Thickness + Type, data=Glue)
+anova(mod4)
+summary(mod4)
+```
+
+```{r}
+mod5 = aov(Force ~ Thickness + Type + Thickness*Type, data=Glue)
+summary(mod5)
+
+mod6 = lm(Force ~ Thickness + Type + Thickness*Type, data=Glue)
+anova(mod6)
+summary(mod6)
+```
+
+*Go back to pulse data* 
+- We looked at: How does exercise predict what your active heart rate was
+- Do we think the aveg heart rate is dif by exercise elvel 
+
+Ho: Do I see evidence of a difference? 
+Ha: Do I not see evidence of a difference?
+
+*Check the conditions for a linear model* 
+
+*ANOVA Table* 
+- Tells us there is sig dif in teh average active heart rate based on what your exercise level is
+
+```{r}
+modp2 = lm(Active ~ Rest + factor(Exercise), data=Pulse)
+
+summary(modp2)
+anova(modp2)
+
+plot(modp2, 1:2)
+```
+
+__Main Effects Two-way ANOVA via Dummy Regression__
+1. Create indicator predictors for each factor
+2. Run regression with the dummy predictors (leaving out one for each factor)
+3. How to interpret the coefficients?
+4. How to “recover” the two-way ANOVA table?
+
+*NOtes* 
+- Want to think about something a little differently 
+*Do I still show these diferences after considering teh Varaiability explained by some over variable?* Is this sig AFTER looking at something else? 
+- Look at the covar of the resting heart rate 
+- We have that exercise level shows sig dif in resting heart rate on average; but does it show that after we consider the realtionship between your resting and active heart rate? 
+*AKA, if we tell R that this is already a connection, will it still see a connection? I think that's what this is saying* 
+
+```{r}
+modp2 <- lm(Active~Rest+factor(Exercise), data = Pulse)
+
+summary(modp2)
+# People who exercise a small amount, we can get rid of the last two lines and it tells us our realtions bt rest and active heart reate follows that intercept and lope 
+
+anova(modp2)
+# How the active heart rate is adjected by the intercept 
+# We are assuming that the resting heart rate follows teh same trend as the active, regardless of your exercise level 
+```
+*Is it reasonable to make the assumption that resting heart rate follows the same trend as the active?* 
+- What kind of relationships are there in the data if I subset by people who exercise a little, a moderate amount, and a lot? 
+
+
+__Two-way ANOVA w/Interaction via Dummy Regression__
+1. Create indicator predictors for each factor
+2. Run regression with the dummy predictors (leaving out one for each factor)
+3. *To include interaction:* Use products of the (included) dummies.
+4. How to interpret the coefficients?
+5. How to “recover” the three ANOVA components?
+
+*Reasonable to assume there is no interaction here.  See the comments on the code below* 
+```{r}
+Exercise1 = subset(Pulse, Pulse$Exercise == 1)
+Exercise2 = subset(Pulse, Pulse$Exercise == 2)
+Exercise3 = subset(Pulse, Pulse$Exercise == 3)
+
+lme1 = lm(Active ~ Rest, data = Exercise1)
+lme2 = lm(Active ~ Rest, data = Exercise2)
+lme3 = lm(Active ~ Rest, data = Exercise3)
+
+plot(Active~Rest, data=Pulse)
+abline(lme1)
+abline(lme2, col='red')
+abline(lme3, col='blue')
+# When we look at the three lines over the data, we are hoping that these will be similar in slope.  IF they are much different in terms of slope, from a practical standpoint, there may be an interaction between these that we need to investigate. 
+
+##Looking at the data, we are trying to see if they are similar enough with their slope, none look drastically different
+```
+*What if there are some issues? Lets try the above with a transformation* 
+
+```{r}
+modp2log = lm(log(Active)~log(Rest) + factor(Exercise), data = Pulse)
+
+anova(modp2log)
+```
+
+*Looking at Residuals* 
+- There is some curve that is not ideal 
+- Look at teh QQNorm, there are some big issues with that one tail on the untransformed thing 
+- With the transformed data: the tail on QQNorm isn't as bad and the little curve on the residual plot isn't as bad. 
+
+*We also have to check and make sure that there is no interaction now that we have introduced the transformation* 
+- Redo what you did before, but all in logs, See code below:
+
+```{r}
+plot(modp2log, 1:2)
+```
+
+```{r}
+lme1.log = lm(log(Active) ~ log(Rest), data=Exercise1)
+lme2.log = lm(log(Active) ~ log(Rest), data=Exercise2)
+lme3.log = lm(log(Active) ~ log(Rest), data=Exercise3)
+
+plot(log(Active) ~ log(Rest), data=Pulse)
+abline(lme1.log)
+abline(lme2.log, col='red')
+abline(lme3.log, col='blue')
+
+# Doesn't show anything idfferent than before 
+# IT helped with teh conditions, but it doesn't effect the interaction to consider 
+```
+**WHy do we do this?** 
+- We want ot know for a hypo test: Is there a dif in teh active heart rates of people at each of the three exercise levels on average
+
+Ho: Mean grousp are qual 
+Ha: At least one mean group is difference 
+
+After accounting for the variability in their active heart rate; so basically doing a nested test to see if exercise variabile signifigant after considering active heart rate? 
+
+*look at ANOVA* 
+FOcus on secon d line, 
+We are thinking about after the var is explained in active heart rate by rest, do we see sig dif in the mean active heart rate by exercise level? 
+
+The pvalue is high, so we dont see a sig dif 
+
+```{r}
+anova(modp2log)
+```
+
+*How does this relate to the homework?* 
+- Last questionon teh HW, are there dif in the mean price of the 6 models of car after taking into account another varibale? 
+
+- Account for the variability in mileage and then see if your car has sig difference in prices 
+- By chance you might have had cars of a certain model with high or low mileage 
+- if one car has only been out for a few years, then it might not have high mileage; so it might not be as useful.
+- If you have cars that are different ages, then you might have a wide spread with some cars vs the other, then you can see after you take into account the variability ofX affects the price of car, are there any differences left by the model or is X really explaining that difference? 
+
+__Analysis of Covariance (ANCOVA)__
+**Basic idea:** If we can use dummy predictors to convert an ANOVA for means into a regression model, why not also include quantitative predictors?
+
+__Analysis of Covariance (ANCOVA)__
+WeightLoss = β0 + β1Age + β2Height + β3Diet1 + β4Diet2 + ε
+Age and Height = Covariates 
+Diet1 and Diet2 = Factor 
+
+- If want to see if sig dif by diet after taking into account other variables, we cna see that as well; see below 
+- We dont know how they chose the groups for these people, so we don't know if its skewed.  This will keep that in mind. 
+- If they didn't, we could test to see if someone's age explains how much weight they loss and if there is a sig diff bt the diet they were on after considering their age or height 
+
+```{r}
+Diet$weightchange = Diet$weight6weeks - Diet$Preweight
+
+mod7 = lm(weightchange ~ factor(Diet), data=Diet)
+anova(mod7)
+```
+
+**What does this tell us?** 
+- After explaining the variabilit yin weight change by age and height, neither were sig, we still saw that there were sig dif bt the weight change by which diet you were on 
+- There could be other variables that did not show this and owuld not show any difference diet after thinking about that. 
+```{r}
+mod8 = lm(weightchange ~ Age + Height + factor(Diet), data=Diet)
+anova(mod8)
+
+plot(mod8, 1:2)
+```
+
+```{r}
+Diet1 = subset(Diet, Diet==1)
+Diet2 = subset(Diet, Diet==2)
+Diet3 = subset(Diet, Diet==3)
+
+lme1.diet = lm(weightchange ~ Age, data=Diet1)
+lme2.diet = lm(weightchange ~ Age, data=Diet2)
+lme3.diet = lm(weightchange ~ Age, data=Diet3)
+
+plot(weightchange ~ Age, data=Diet)
+abline(lme1.diet)
+abline(lme2.diet, col='red')
+abline(lme3.diet, col='blue')
+```
+
+```{r}
+lme4.diet = lm(weightchange ~ Height, data=Diet1)
+lme5.diet = lm(weightchange ~ Height, data=Diet2)
+lme6.diet = lm(weightchange ~ Height, data=Diet3)
+
+plot(weightchange ~ Height, data=Diet)
+abline(lme4.diet)
+abline(lme5.diet, col='red')
+abline(lme6.diet, col='blue')
+```

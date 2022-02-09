@@ -1,0 +1,24 @@
+---
+title: "Homework 9"
+author: "Alyssa Warnock, Helen Johnston, Ashley Wade, Hunter Barbee"
+output:
+  word_document: default
+  html_notebook: default
+---
+
+```{r}
+Sleep<-read.csv("SleepStudy.csv")
+head(Sleep)
+```
+
+1. For an female who has a stress score of 15, what does your model predict is the probability they have pulled an all nighter?
+
+```{r}
+mod1=glm(AllNighter~Gender+AnxietyScore,family="binomial", data = Sleep)
+summary(mod1)
+```
+```{r}
+newx=data.frame(Gender=0,AnxietyScore=15)
+predict(mod1,newx,type="response")
+```
+For a female with an anxiety score of 15, the model predicts the probability of having had an all-nighter this semester is 0.1242689

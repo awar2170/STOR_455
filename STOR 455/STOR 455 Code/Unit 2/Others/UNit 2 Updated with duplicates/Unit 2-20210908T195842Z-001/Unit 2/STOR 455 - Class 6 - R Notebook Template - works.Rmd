@@ -1,0 +1,63 @@
+---
+title: "STOR 455 Class 6 R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+ 
+ rm(list=ls())
+```{r message=FALSE, warning=FALSE}
+# message=FALSE, warning=FALSE suppress warnings and messages from appearing in knitted files
+
+library(readr)
+library(Stat2Data)
+```
+**Looking at Outliers in Data** 
+- Are they real data or not ? DO we want to make a prediction that limits outliers? 
+- We still have to worry aout the simple linear model conditions 
+- OUtliers can have abig infulence on the SLM Conditions (Simple LInear MOdel (SLM) )
+- Unusal points 
+  - Are these outlers or infliential points/ 
+  - OUtlier = doesn't always have influenc eon a model 
+  - OUtlier: a data point that is far from the regression line 
+  - influential point" A data p oint that has a large effect on the thing 
+  
+**Detecting uNusual Cases Overview** 
+1. COmputer residueals 
+  - raw, standarized, studentized
+    - Raw residual - look at it in context; how big is actually big?  
+2. Plots of residuals 
+  - boxplot and what we've been lookinga t recently 
+3. LEverage 
+  - next class
+4. Cooks distance 
+  - next class 
+  
+```{r}
+data("LongJumpOlympics2016")
+plot(Gold~Year, jump)
+jump1 <- lm(Gold~year, jump)
+abline(jump1)
+  
+# Looking at the ditted residuals; there is acurve, so linearirty migh tbe an issue 
+# Code isn't working, but we will still take notes 
+# Looks like with teh lm form; every year, increases certain times 
+```
+```{r}
+data("LongJumpOlympics2016")
+boxplot(LongJumpOlympics2016$residuals)
+# THis isn't working; so we're just going to pay attention to the lecture 
+```
+
+```{r}
+```
+
+Stand resiudals = like zscore for residuals 
+rstandard function = tells you what the standardized thing is 
+
+Very lost already, he's not slowing down 
+
+if you look at the max of gold model? you get the max 
+if you want which.max it will tell you where teh value is 
+
+lok at atht filled notebook because struggle buss and code no worky 

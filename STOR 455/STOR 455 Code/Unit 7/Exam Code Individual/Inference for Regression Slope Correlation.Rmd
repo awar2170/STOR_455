@@ -1,0 +1,32 @@
+---
+title: 'STOR 455 Homework #9 Part 1'
+subtitle: Inference for Regression Slope/Correlation
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r}
+library(readr)
+SleepStudy <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/SleepStudy.csv")
+```
+
+1. Create a model to predict GPA from the average amount of sleep and use the test for correlation and test for slope to test the strength of the linear relationship between your variables.
+
+test for corelation: 
+H0: p = 0 
+Hα: p != 0 
+
+test for slope:
+H0:β1 = 0 
+Hα:β1 != 0 
+According to the test for slope, our p-value is 0.337 while the p-value of the correlation test is 0.3368; Both of which do not give us enough evidence to reject the null hypothesis, which means that there isnt a strong relationship between GPA and AverageSleep.
+
+```{r}
+mod1 = lm(GPA~AverageSleep, data = SleepStudy)
+cor.test(SleepStudy$GPA,SleepStudy$AverageSleep)
+summary(mod1)
+```
+

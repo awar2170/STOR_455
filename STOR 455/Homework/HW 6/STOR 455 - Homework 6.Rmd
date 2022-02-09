@@ -1,0 +1,123 @@
+---
+title: 'STOR 455 Quiz #2 v.B'
+geometry: margin = 2.2cm
+output:
+  word_document: default
+  html_notebook: default
+  pdf_document: default
+---
+
+\pagenumbering{gobble}
+
+__Directions:__ This quiz is open books, notes, internet, and all things other than direct communication with others. The _Turtle_Quiz2.csv_ dataset is needed to complete the quiz. This dataset can be imported from the chunk below or from the csv file, also attached in this Sakai assignment. You should complete the quiz in this R Notebook, including all code, plots, and explanations. For your submission, you should knit the notebook and submit it as a pdf to Gradescope. 
+
+```{r message = FALSE}
+library(readr)
+turtles = 
+  read_csv('https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/Turtle_Quiz2.csv')
+```
+
+## Back to Eastern Box Turtles ## 
+
+The Box Turtle Connection is a long-term study anticipating at least 100 years of data collection on box turtles. Their purpose is to learn more about the status and trends in box turtle populations, identify threats, and develop strategies for long-term conservation of the species. Eastern Box Turtle populations are in decline in North Carolina and while they are recognized as a threatened species by the International Union for Conservation of Nature, the turtles have no protection in North Carolina. There are currently more than 30 active research study sites across the state of North Carolina. Turtles are weighed, measured, photographed, and permanently marked. These data, along with voucher photos (photos that document sightings), are then entered into centralized database managed by the NC Wildlife Resources Commission. The _Turtles_Quiz2.csv_ dataset contains data collected at The Piedmont Wildlife Center in Durham.
+
+In Homework #1, you may have have constructed a linear model with log(_Annuli_) as the response and log(_Mass_) as the predictor. This was a means to roughly estimate the age of the turtle from its mass. *Is it possible that other variables have a significant interaction with the relationship of these two variables?*
+
+1) Construct a linear model with log(_Annuli_) as the response and log(_Mass_), _CaptureMethod_, and the interaction between log(_Mass_) and _CaptureMethod_ as the predictors. Include the output for the summary of the model. Note that _CaptureMethod_ uses the following numerical codes for how the turtle was captured: 1=road capture; 2=while mowing; 3=active search; 4=incidental; 5=radio signal; and 6=dog. _3pts_
+```{r}
+mod1 <- lm(log(Annuli)~log(Mass)+factor(CaptureMethod)+log(Mass)*factor(CaptureMethod), turtles)
+summary(mod1)
+```
+
+    
+2) How many predictor variables are in the model that you constructed in question #1? _0.5pts_
+
+*There are two main predictor variables (Mass and Capture Method), but 7 total predictor variables.  Capture Method is a categorical variable with 6 sections and Mass is a numerical variable.  So a total of 7 predictor variables.*
+
+3) Specifically for turtles who were captured via radio signal, for each 1 unit increase in log(_Mass_), what does your model from question #1 predict will be turtles' increase in log(_Annuli_) (Your answer should be numerical)? _1.5pts_
+
+*For every increase in log(Mass) the model predicts that annuli will increase in 0.16233 Annuli.*3
+
+Y = 2.76209  + 0.04149x1-0.80322x2+.12084; where x2 = 1, because you're talking about the type 5 turtles; x1:2 = 1
+
+```{r}
+Y = 2.76209  + 0.04149 -0.80322 +.12084
+Y
+
+X = 2.76209  + (0.04149*2) -0.80322 +.12084*2*1
+X
+
+X-Y
+
+0.04149+0.12084 # This is with just adding the logmass and factor capture method 5 and the log mass 
+```
+
+
+
+```{r}
+summary(mod1)
+```
+y = 2.76209 + 0.04149log(mass) + -0.80322(1) + 0.12084 interaction bt log(mass) andcapmeth5 (1)
+y = 1.95887 + 0.16233 log(mass)
+Reminder: This is for log(Annuli)
+
+```{r}
+2.76209-0.80322
+0.04149+0.12084
+
+exp(1.95887)*exp(0.16233*log(mass)) # This is annuli
+
+# Log properties
+exp(1.95887) * exp(log(mass^0.16233))
+exp(1.95887)* mass^0.16233 # This is teh equation of the curve that oyu eveentually want on the scatter plot around 5
+
+```
+
+
+4) Perform a hypothesis test to determine the importance of just the terms that involve _CaptureMethod_ in the model constructed in question #1. List your hypotheses (be specific!), p-value, and conclusion. _3pts_
+
+*To find if CaptureMethod has a statistically signifigant effect on Annuli, we look at the individual t-tests for each variable.  We want that eatch have a low p-value because it tells us that your variable is not expected by random chance.*
+
+*If we had a high p-value, then we may be able to get the variable results from a lot of differnet places, so it wouldn't be a special value.  Since we see from the results below that not all p-values are less than 0.05, we can conclude that the difference between CaptureMethod does not have a staistically signifigcant effect on Turtle ANnuli.*
+
+Ho: CaptureMethod = 0 
+Ha: CaptureMethod =/= 0
+
+*Conclusion: We do not have evidence to reject the null hypothesis that CaptureMethod = 0 because the p-value is greater than 0.05.*
+
+*Because teh pvalue is so high, currently, CaptureMethod is not a singifigicant variable in the model and may need to be removed and replaced with a different variable that would be a better predictor of Annuli*
+```{r}
+anova(mod1)
+```
+
+
+5) Plot _Annuli_ on the vertical axis and _Mass_ on the horizontal axis (Not the log of these variables!). Your plot should still contain the data for all capture methods. Add the model that you are asked to construct in question #1 to this plot for specifically when the _CaptureMethod_ was via radio signal. _2 pts_
+```{r}
+plot(Annuli~Mass, turtles)
+curve(exp(1.95887)* x^0.16233, add = TRUE)
+```
+
+
+```{r}
+#For all the capture methods
+plot(Annuli~Mass+factor(CaptureMethod), turtles)
+# FOr only radio signal 
+plot(Annuli~Mass+factor(CaptureMethod==5, TRUE), turtles)
+```
+
+```{r}
+plot(Annuli~Mass+factor(CaptureMethod), turtles)
+abline(mod1)
+```
+
+```{r}
+plot(Annuli~Mass, col = "red", subset(turtles, CaptureMethod==1))
+points(Annuli~Mass, col="orange", subset(turtles, CaptureMethod==2))
+points(Annuli~Mass, col="black", subset(turtles, CaptureMethod==3))
+points(Annuli~Mass, col="green", subset(turtles, CaptureMethod==4))
+points(Annuli~Mass, col="blue", subset(turtles, CaptureMethod==5))
+points(Annuli~Mass, col="purple", subset(turtles, CaptureMethod==6))
+```
+
+
+

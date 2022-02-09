@@ -1,0 +1,305 @@
+---
+title: "STOR 455 Class 36 R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+---
+
+
+```{r message=FALSE, warning=FALSE}
+library(readr)
+
+Exams4 <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/Exams4.csv")
+
+Diet <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/Diet.csv")
+
+Glue <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/Glue.csv")
+```
+_Diet Information_ 
+- Investigate the data to determine the impact of the type of diet and Sex on mean weight loss in separate models. 
+- Evaluate the residuals for the appropriateness of using the ANOVA model in each model 
+- Use pairwise methods to investigate differences between means if the overall ANOVA model is significant.
+
+**Goal:**
+- Want to see the impact of each diet and how the diet and sex effects teh mean weight loss 
+- First model: ANOVA MOdel by WEight loss by Sex 
+- SEcond: Anova by WEight loss by Diet type 
+
+- Want to look at residual plot to check the conditions and if we do see there are sig differences by sex or diet, then we want to follow up and do a pairwise comparision like we did last time to see where those differences are. 
+
+```{r}
+head(Diet)
+```
+
+There is no weight change variable so we will need to make a variable called weight change and subtract teh differences in weight begining and afterwards. 
+
+- Then look back, make an anova model for weight change by diet and then follow through the process of checking the conditions and see wehre teh sig difference with teh pairwise analysis if tehy exists 
+- Repeat for Sex
+- Then we will talk about how to do one test that does the two things above twice 
+
+**THE DIET INFORMATION IS NOT ALREADY WRITTEN IN THE RMARKDOWN FILE, YOU WILL NEED TO WRITE THIS FROM THE SLIDE**
+_Diet Data Conclusions_ 
+**Question1:** Are there dif in weight change depending on the diet you are on and if there are, which diet(s) seem to be sig different than each other?
+
+*There are changes* 
+- **Best diet:** The 3rd one
+-- They lost about on average 2kg more and there are sig dif 
+-- Practically this doesnt mean its better.  Maybe it's more miserable to be on than the others 
+-- Maybe it's not worth it, but from a stats standpoint, there is a difference there 
+
+__Diet Code__
+- First: Make a new var of the dataframe = weight change 
+- Second: Make a model and factor the diet because we want to see the 3 separate diets 
+- Third: Look at teh summary of that 
+
+Ho: Mean weight change for each diet is equal 
+Ha: At least one mean weight change for a diet is differnt 
+
+Pvalue: small, tells us 
+
+Conclusion: We have sig eviduce that the diets are not equal in the population, so we have evidence to support the alternative 
+
+*We should also check that it fits the conditions that we need, so we look at the plots of residuals by fitted and QQNorm* 
+- NOrmality: Seems pretty normal 
+- Residuals by fitted - constant variance; the spread of each of the diets are the same; nothing here stands out; what would stand out is if one diet was tightly packed adn the others were spread out.
+--This looks different than normal because it's clustered by diet 
+--We could have also gotten the sd of teh diets and seen if one was bigger than the others;
+--**Rule of thumb: If the biggest one is more than double the smallest, there may be some issues** 
+
+**To see where the differences are, look at the Tukey analysis** 
+*Tukey's* Gives us middle ground 
+*Bonferroni* Increases chance of type 2 error, so we would need more evidence, which is why we don't do that one.  You can in the future if you ever need it though. 
+
+*Tukey's output* 
+- Inflated p-value: There are two places were the pvlaue is below a point 0.05 level and that's wehre we are comparing diet 3:1 and 3:2; 
+-- Sig dif exist bt the mean weight change bt 3:1 and 3:2 
+--If you didn't factor diet, Tukey would probably be mad at you and not run **Troubleshooting**
+```{r}
+Diet$weightchange = Diet$Preweight - Diet$weight6weeks
+
+weightchange_diet = aov(weightchange~factor(Diet), data = Diet)
+summary(weightchange_diet)
+
+plot(weightchange_diet, 1:2)
+
+TukeyHSD(weightchange_diet)
+
+tapply(Diet$weightchange, Diet$Diet, mean)
+```
+__Additional Analysis for Sex__ 
+Not much is different; iot says two obs were delted, because there were 2 NA's for sex that weren't listed 
+
+Looking at teh summary: Sum of Squeares tells us little variability is explained by this model, but we have a high pvalue, so we don't have evidence to say that Sex plays a role in the weight change 
+
+Ho: Sexes are all equal 
+Ha: Sexes are not equal 
+
+**Looking at the plots: Does it fit the conditions?**
+- No need to do a Tukey follow up because we don't see a difference between the groups, so there's no reason to keep going with that. 
+
+*LAst two classes* We looked at the level combinations of the variables: ex: Student and grade; here there are more because sex and diet; many people of sex 1 on different diets, so there are more than 1 person in each categories. 
+
+**HOw to tell if it is a good model?** 
+- Look at teh summary to get an idea of how much variably is explained by this model compared to the total variablity(vs what is not being explained by the model is a better way to put it)
+
+SSR, model 1: 71 w/ 430 left over in residual (unexplained) 
+SSR, model 2: More left over unexplained, we are explaining very little of it by sex. 
+```{r}
+weightchange_Sex <- aov(weightchange~factor(Sex), data = Diet)
+summary(weightchange_Sex)
+
+plot(weightchange_Sex, 1:2)
+```
+__Example: Exam Score__ 
+*We want to build a model with both Sex and the Diet* 
+- We want to compare what is explained vs not explained 
+- If there ar emore variables, then tehre will be less unexplained because they will explain some of the the differences that we see 
+- When we build a bigger model, what you're comparing (the variabilaity that is explained by that predictor too) is going to change
+
+*We’ve shown (one-way):*
+	*No significant differences between the exams*
+	*Significant differences between the students*
+
+**Question:** Can we use BOTH factors to help explain the variability in the exam scores?
+
+__Repeat the models from last time__ 
+amodC is a different test now 
+
+__Simple Block Design__ 
+
+**Define**: A  simple block design has two factors with exactly one data value in each combination of the factors.
+
+Assume: Factor A (Treatments) has K levels
+               Factor B (Blocks) has J levels
+           n= K∙J data values
+
+- Putting both model wants into one is a simpl block design; where we take 2 factors (Student and Exam) and we see which one is treatmetn or block and teh blocks (how we split them up) and treatment (apply different treatments) 
+- Treatmetns = levels (exams, student names, etc)
+- We have one value for each person in our data
+
+*thinking about what the model is doing* 
+- Still thinking about the overall average of what is going one 
+- we want to see how the different effects are on the model; what are the effects of it being this particualr student or this block that we are in (which exam or which student)
+- leaves us with what the differences are for each combination of the different levels of our treatment and block
+
+__Two-way ANOVA: Main Effects Model__
+Y = mu + alphak + Bj+ E
+Y = GrandMean + effect for kth treatment + effect for jth block + Random Error 
+
+__Randomize Block - Calculations__
+1. Find the mean for each treatment (row means), each block (column means), and grand mean.
+2. Partition the SSTotal into three pieces:
+-- SSTotal = SSA + SSB + SSE 
+
+SSTotal = sum(y-ybar)^2 = (n-1)s^2
+SSA = row means 
+SSB = column means 
+SSE = SSTotal - SSA-SSB 
+
+__Randomized Block ANOVA Table__
+**Format:** Row(Header): [1,2],[1,3],[1,4],etc. 
+Source: d.f, S.S., M.S, t.s., P-value 
+Facotr A: K-1, SSA, SSA/(K-1), MSA/MSE
+Factor B: J-1, SSb, SSB/(J-1), MSB/MSE
+Error: (K-1)(J-1), SSE, SSE/(K-1)(J-1), [4,4], [4,5]
+Total: n-1, SSTotal
+
+__Testing Two hypotheses__ 
+Ho: alpha1 = alpha 2=...= alphaK=0
+   Ha: Some alpha k != 0
+   Factor A: Difference in treatment means? 
+Above, we are assuming that the factor a has no effect on the factor b 
+
+Ho: B1 = B 2=...= BJ=0
+   Ha: Some B j != 0
+   Facotr B: Difference in block means? 
+THis second test is looking at the factor b and seeing if it has no effect on factor a;
+- we just swapped the two things we are testing, so we test both of the variables
+
+- We get different results because the residuals left over will be smaller because we are combining to see which is being explained by each of these things at once 
+
+**Looking at the summary of amodA, B, and C** 
+- WHen individually, there are no sig dif by exam, 
+- When put together, there are sig difference 
+
+*Reason:* If you look at teh SSResid in teh Exam model, that is big, but if you look in the other it's smaller because the var is being explained by Student 
+- It's not really testing the same thing; one is in a vaccum and one is in the model, but we are saying that if we are jsut looking at the unaccounted varibaility, then there are sig differences on the average scores by exam in the population. 
+
+*Conclusion* Evidence of a difference in means between exams. and Evidence of a difference in means between students.
+
+
+
+```{r}
+amodA = aov(Grade~factor(Exam), data=Exams4)
+summary(amodA) #This SSR Residuals is bigger because there is alot that is not being explained by the predictor
+
+amodB = aov(Grade~Student, data=Exams4)
+summary(amodB) #This SSR Res id smaller bc when we look at mean by student, a lot of the variability is explained; when we predict Bub's score with the other average that he did, we know more where it is coming from
+
+#amodC = combines amodA and amodB
+amodC = aov(Grade~factor(Exam)+Student, data=Exams4)
+summary(amodC)
+```
+__Following Up with Tukey__ 
+- This output is a series of the mult comparision with every poss comb of factor A and then every combo of factor B; 
+- there are sig dif for each factor 
+
+*Looking at output by exam* Exam 2 and 1 have a low p value and 3 and 2 have a low p value; those are where we are saying *THERE IS SIG DIF IN THE POPULATION*; if its practical is another thing 
+
+*Looking at output by student* : simialr results,that bud has a lower average, bud and bob, bill, betsy and bard are all sig and none of the other values are because we don't have a lot of added explained variability by having the exams
+
+by adding the exam it didn;'t really show wehre to see diferences, but it worked the other way 
+```{r}
+TukeyHSD(amodC)
+```
+**Same visual from last time** 
+- When they cross zero: means we predict there could be no difference betweent eh things
+- When they don't cross zero: Visual to see wehre the differnces are that there could be a difference between tehse things 
+
+**We have been doing two way because we haev two predictors** 
+*What about the conditions?*
+```{r}
+par(mar=c(4,7,3,1))
+hsd=TukeyHSD(amodC)
+plot(hsd,las=2)
+par(mar=c(5,4,2,2))
+```
+*Looking at the conditions* 
+- Constant variance: A little harder, but look at the fitted residuals, there are more columsn of data we haev to worry about here, overlal it looks good, but we can't see much 
+- NormalQQPlot of residuals : This is a small dataset, so nothing stands out as really bad. 
+
+```{r}
+plot(amodC, 1:2)
+```
+__Looking back at the diet data__ 
+- GO in with a two way anova model 
+Ho: Mean weights by diets are equal and themean weight changes are equal 
+Ha: At least one is difference 
+
+Ho: Mean weight change by sex are equal 
+Ho: Mean weight change by weight are not equal by sex 
+
+*Check COnditions* 
+- None of them look sus 
+
+*Tukey tells us wehre changes are* 
+- Tukey tells us that diets 3-1 and 3-2 are the different ones, 
+- the dif bt sex, there ar eonly two here so we cant compare too mcuh 
+- this test is giving us the same thing as before because its the same test 
+
+**Still need to think about: THe idea of interaction now**
+- We are saying that the diets there are sig differences there from weight changes and there are no sig difference by sex for weight change, but could there be interactions.  I nother owords, woudl some diets work for some sexes thant he others and are there difference there?
+
+If we look at the dif of weight change by sex and diet, could we explain more variabiltiy that's left unexplained here.
+
+```{r}
+weightchange_both <- aov(weightchange~factor(Diet)+factor(Sex), data = Diet)
+summary(weightchange_both)
+
+plot(weightchange_both, 1:2)
+
+TukeyHSD(weightchange_both)
+```
+
+
+```{r}
+Glue_model = aov(Force ~ Thickness + Type + Thickness*Type, data=Glue)
+summary(Glue_model)
+```
+
+```{r}
+TukeyHSD(Glue_model)
+```
+
+```{r}
+interaction.plot(Glue$Type, Glue$Thickness, Glue$Force)
+```
+
+```{r}
+interaction.plot(Glue$Thickness, Glue$Type, Glue$Force)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

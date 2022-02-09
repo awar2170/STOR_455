@@ -1,0 +1,254 @@
+---
+title: "STOR 455 Class 5 R Notebook"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+---
+ 
+```{r message=FALSE, warning=FALSE}
+# message=FALSE, warning=FALSE suppress warnings and messages from appearing in knitted files
+
+library(readr)
+library(Stat2Data)
+```
+__What to do when regression assumptions are violated?__
+*Examples of violations:*
+1. Nonlinear patterns in residuals
+2. Heteroscedasticity (nonconstant variance)
+3. Lack of normality in residuals
+4. Outliers: influential points, large residuals
+
+__Data Transfomrations__ 
+Can be used to:
+1. Address non-linear patterns
+2. Stabilize variance
+3. Remove skewness from residuals
+4. Minimize effects of outliers
+
+__Common Transformations__
+- Log 
+- Square root 
+- Exponentiation 
+- Power function 
+- Reciprocal 
+
+_Example: Mammal Species_
+Y = Number of mammal species on an island
+X = Area of the island
+
+Data on fourteen islands in Southeast Asia are stored in SpeciesArea (in Stats2Data)
+
+*Notes* 
+- Make sure you check your working environment 
+
+**Why is log of something useful?** 
+- Log goes up and then trails off forever 
+- If have a big right skew, or extreme values or outliers in the right side, it helps squeeze the outliers back in 
+- If we have constant variance issues, with fanning patterns, use log 
+- DOesn't effect low values very much, but helps smoosh bigger data 
+
+```{r}
+# Pull in the data 
+data("SpeciesArea")
+
+# The log of the species are going to be the most useful 
+# Plot the data, make a linear model 
+# Want to predict the number of species on each island, based on teh island area
+plot(Species~Area, data=SpeciesArea) # Just the scatterplot, see that is appears to follow a log, but we'll keep make the other models to jsut see how bad it violates the other conditions of linear
+
+SpeciesModel=lm(Species~Area, data=SpeciesArea)
+abline(SpeciesModel) # See that the line deosn't work for us 
+
+# Doing Residual analysis 
+plot(SpeciesModel$residuals~SpeciesModel$fitted.values)
+abline(0,0)
+
+# When looking at plots, you can see that it's pretty bad 
+# Residual analysis can also be done with plot(mod1, 1:2)
+```
+
+```{r}
+# Tells you which point is biggests value of residual 
+max(SpeciesModel$residuals)
+
+# Tells you where the value is in the table 
+which.max(SpeciesModel$residuals)
+
+# Gives you the row of the max, this is the number that you got from which.max above
+SpeciesArea[3,]
+
+# Just another way to call SpeciesArea[3,]
+SpeciesArea[SpeciesArea$Name=="Java",]
+```
+
+**New Transformation Model** 
+```{r}
+# New transformation model 
+plot(log(Species)~log(Area), data=SpeciesArea)
+SpeciesModel2=lm(log(Species)~log(Area), data=SpeciesArea)
+abline(SpeciesModel2) # Plotting the linear regression line on the scatterplot of the data
+```
+
+
+**HOw to interpret the summary table of a transformed linear model** 
+- *Interpret:* For every 1 unit increase in the log(area), there is a 0.2355 increase in log(species)
+
+```{r}
+summary(SpeciesModel2) # Gives you the output of the linear model 
+# Look at the coefficients table: Intercept and slope for the Log(area) 
+# Intercept (B0) for Log(area) = 1.6249, intercept of the reg line 
+# Slope (B1): Log(Area): 0.2335
+# For every 1 unit increase in the log(area), there is a 0.2355 increase in log(species)
+
+# Checking the conditions of the transformed linear model 
+plot(SpeciesModel2, 1:2)
+```
+
+**Pulling out the coeffecients of the linear model** 
+- Also shows how to plot the linear model 
+- You need to solve for the same variables before you plot the linear model curve on the base plot because otherwise, it's in different variables 
+
+*BELOW: HOW TO SOLVE OUT FOR LOG OF BOTH SIDES* 
+**IMPORTARNT** 
+```{r}
+B0 = summary(SpeciesModel2)$coefficients[1,1] # Intercept
+B1 = summary(SpeciesModel2)$coefficients[2,1] # Slope
+
+plot(Species~Area, data=SpeciesArea)
+curve(exp(B0)*x^B1, add=TRUE) # This is the linear model curve, on the normal data, but solved so that they are in the same units. 
+```
+
+__Artic Sea Ice__
+The SeaIce data gives information about the amount of sea in the arctic region as measured in September (the time when the amount of ice is at its least) since 1979. The basic research question is to see if we can use time to model the amount of sea ice.  
+
+In fact, there are two ways to measure the amount of sea ice: Area and Extent.  Area measures the actual amount of space taken up by ice. Extent measures the area inside the outer boundaries created by the ice.  If there are areas inside the outer boundaries that are not ice (think about a slice of swiss cheese), then the Extent will be a larger number than the Area.  In fact, this is almost always true.
+
+```{r}
+data("SeaIce")
+head(SeaIce)
+```
+
+```{r}
+plot(Extent~t, data = SeaIce) # Basic plot of the oringial data 
+IceModel1=lm(Extent~t, data = SeaIce) # Linear model of extent by time 
+abline(IceModel1) # Plotting the line on the plot 
+
+# We see that th eline look spretty good on the data
+```
+
+**Looking at Residuals** 
+- The residual plot has a slight curve 
+- The red line = the benefit of using the plotted of the model itself, rather than the residuals by fitted separate; shows that there is some pattern and curve there 
+- We can see this really well at the middle region 
+- There is some region bt 5 and 6.5 where all the residuals are above the line 
+- So your prediction in that range will always be below what it should be 
+
+```{r}
+plot(IceModel1$residuals~IceModel1$fitted.values)
+abline(0,0) #Could also write plot(mod1, 1:2)
+
+# Below used the line to draw two vertical lines where the residual plot was looking weird
+# Will draw 2 vertical lines, one at X of 5.65 and the other 6.52
+abline(v=c(5.65,6.52), 
+       col=c("red", "red"), 
+       lty=c(2,2), # Look like a dash line 
+       lwd=c(1, 1)) #Draws red dashed vertical lines; width 
+# The abline above shows you where the plot is under predicting 
+
+plot(IceModel1, 1:2)
+```
+
+**How does doing transformations change the output?** 
+- Trying exponential to 1
+```{r}
+plot(Extent^1~t, data = SeaIce) # Basic plot of the oringial data 
+IceMod=lm(Extent^1~t, data = SeaIce) # Linear model of extent by time 
+abline(IceMod)
+
+plot(IceMod$residuals~IceMod$fitted.values)
+abline(0,0) #Could also write plot(mod1, 1:2)
+```
+
+**Trying to raise to the 5th power** 
+- Notice: This looks a bit better on the residual plot 
+- Subjective 
+- No very defined curvature 
+- Look at teh oringal data, we see that there are not some region anymore where all the dots are above or below the line 
+- This might have helped 
+
+- We may have also made other problems.  See that one middle point that is well above the line? The transformation might have made things worse in different ways
+
+```{r}
+plot(Extent^5~t, data = SeaIce) # Basic plot of the oringial data 
+IceMod=lm(Extent^5~t, data = SeaIce) # Linear model of extent by time 
+abline(IceMod)
+
+plot(IceMod, 1:2)
+# The reisudal by fitted in teh orinigal plot had a red curve;but in this one the line has appeared to be subdued, but it may be decieving ebcause it plots the range of the data 
+# it might just be the extreme case fo 18 appear to stretch it out and tone down what it actualyl looks like when I show it 
+# Not as defined as it was before 
+
+# The normal QQplot looks pretty good, there the 2 on teh tail that are flying out, but for the small dataset, things appear to fit well 
+
+# No constant variance issues here 
+
+# Might not be a good model, but it's a better model 
+```
+
+**What if we take off the 5th power? and raise time tot he power instead?** 
+- THis gets the curve back in the residual plot, and we don't want that.  so this makes it worse/same
+- R is ignoring you when you trying to raise the predictor to a power.  It thinks that you're not trying to do that 
+```{r}
+# THIS IS THE WRONG WAY
+plot(Extent~t^3, data = SeaIce) # Basic plot of the oringial data 
+IceMod=lm(Extent~t^3, data = SeaIce) # Linear model of extent by time 
+abline(IceMod)
+
+plot(IceMod, 1:2)
+```
+
+**How to power the predictor**  
+-Somethings that work outside of functions may work differently inside of functions. 
+- The carrot that should be raising it, worked on the response, but it won't work on the predictor, inside of lm
+- It thinks you're trying to do an interaction between variables, and you're not trying to do that. 
+
+**Below: HOW TO Power PREDICTOR PROPERLY**
+- Still doens't make a good model in this instance, but it could help in the future 
+```{r}
+# THIS IS THE RIGHT WAY
+plot(Extent~I(t^3), data = SeaIce) # Basic plot of the oringial data 
+IceMod=lm(Extent~I(t^3), data = SeaIce) # Linear model of extent by time 
+abline(IceMod)
+
+plot(IceMod, 1:2)
+```
+
+**USING THE BEST MODEL** 
+- WE are using the 5th power model
+- What if we want to plot this on the orignial raw data? 
+```{r}
+plot(Extent^5~t, data = SeaIce) # Basic plot of the oringial data 
+IceMod=lm(Extent^5~t, data = SeaIce) # Linear model of extent by time 
+abline(IceMod)
+
+plot(IceMod, 1:2)
+```
+
+**PLOTTING TRANSFORMATION ON RAW DATA** 
+```{r}
+plot(Extent~t, data = SeaIce)
+
+summary(IceMod)
+
+# Pull out coeff of the transform model 
+#INtercept
+B0_Ice = summary(IceMod)$coefficients[1,1] # Intercept
+ 
+#Slope
+B1_Ice = summary(IceMod)$coefficients[2,1] # Slope 
+
+# Solve for the curve with math 
+curve((B0_Ice+B1_Ice*x)^(1/5), add = TRUE) # Tke 5th root of each side, jsut solved
+```
+

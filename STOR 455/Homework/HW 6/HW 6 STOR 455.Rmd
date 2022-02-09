@@ -1,0 +1,213 @@
+---
+title: "Homework 6"
+author: "Alyssa"
+date: "11/8/2021"
+output: html_document
+---
+
+STOR 455 Homework 6
+
+15 points - Due Wednesday 10/27 5:00pm
+
+Are Emily and Greg More Employable Than Lakisha and Jamal?
+
+Bertrand, M., & Mullainathan, S. (2004). Are Emily and Greg more employable than Lakisha 
+and Jamal? A field experiment on labor market discrimination. American Economic Review, 
+94(4), pp. 991-1013.
+
+𝐴𝑏𝑠𝑡𝑟𝑎𝑐𝑡
+We perform a field experiment to measure racial discrimination in the labor market. We 
+respond with fictitious resumes to help-wanted ads in Boston and Chicago newspapers. To 
+manipulate perception of race, each resume is randomly assigned either a very African 
+American sounding name or a very White sounding name. The results show significant 
+discrimination against African-American names: White names receive 50 percent more 
+callbacks for interviews. We also find that race affects the benefits of a better resume. For 
+White names, a higher quality resume elicits 30 percent more callbacks whereas for African 
+Americans, it elicits a far smaller increase. Applicants living in better neighborhoods 
+receive more callbacks but, interestingly, this effect does not differ by race. The amount of 
+discrimination is uniform across occupations and industries. Federal contractors and 
+employers who list “Equal Opportunity Employer” in their ad discriminate as much as 
+other employers. We find little evidence that our results are driven by employers inferring 
+something other than race, such as social class, from the names. These results suggest that 
+racial discrimination is still a prominent feature of the labor market.
+
+*Variables Descriptions*
+*call* Was the applicant called back? (1 = yes; 0 = no)
+*ethnicity* indicating ethnicity (i.e., “Caucasian-sounding” vs. “African-American 
+sounding” first name)
+*sex* indicating sex
+*quality* Indicating quality of resume.
+*experience* Number of years of work experience on the resume
+*equal* Is the employer EOE (equal opportunity employment)?
+Use the ResumeNames455 found at the address below:
+
+```{r}
+library(Stat2Data)
+library(readr)
+library(TTR)
+resume.names <- read.csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/ResumeNames455.csv")
+logit = function(B0, B1, x)
+ {
+ exp(B0+B1*x)/(1+exp(B0+B1*x))
+ }
+```
+# How does logit differ from empirical logit?
+logistic regression - classify Y/N o 1/0; we want probability. 
+"B0+B1*x" = Log odds 
+# Why are log odds important? 
+- Just the log of the odds; we can determine the odds of the response being 1 as you change the predictors. "As your X changes by 1, how do the odds of this event change?" Typically gets multiplied by a constant. 
+
+"exp(B0+B1*x)/(1+exp(B0+B1*x))" = Probability of whatever we are trying to predict in the logistic regression; the Probability that the response is 1.
+
+# Is logit just the probability of something happening over the probability of it not happening?
+Yes
+
+1) Construct a logistic model to predict if the job applicant was called back using 
+experience as the predictor variable.
+```{r}
+jobxp.mod = glm(call~experience, data=resume.names, family=binomial)
+summary(jobxp.mod)
+```
+
+2) Plot the raw data and the logistic curve on the same axes.
+```{r}
+B0 = summary(jobxp.mod)$coef[1]
+B1 = summary(jobxp.mod)$coef[2]
+plot(jitter(call,amount=0.1)~experience,data=resume.names)
+curve(exp(B0+B1*x)/(1+exp(B0+B1*x)),add=TRUE, col="red")
+# curve(logit, add = TRUE, col = green)
+```
+#In line 69 could I have just put "logit" instead of the whole function and expect it to run? The data isn't available anymore, so I can't just rerun the code. 
+It doesn't work because logit is a function.  
+
+3) For an applicant with 3 years of experience, what does your model predict is the 
+probability of this applicant getting called back?
+
+The model predicts that the person with 3 years of experience has a 0.06 probability of 
+getting called back.
+#Is this the correct approach?
+Yes
+
+```{r}
+x = 3
+logit(B0, B1, x)
+## [1] 0.06646115
+rm(x)
+```
+
+4) Construct an empirical logit plot and comment on the linearity of the data. 
+
+# Why is it important to group the data while making an emperical logit plot? 
+The data is, 
+of course, most linear with only two points. 5 points appears to be the best fit for the 
+data, since 6 and up appear to have dots further away from the line and points 4 and 
+below either have too little data or are less ideal than the 5 pointed approach.
+
+# Why do I make groups? 
+We are checking linearity.It has to be a line because of the way the line is written; 
+
+# WHy group?
+ Finding the odds of one point happening is meaningless.  The probability of one thing happening.  You group to find the probability of a group of a type of happening. We want to make sure that the change in the log odds of something happens is a linear change between the groups in the data. 
+
+```{r}
+emplogitplot1(call~experience, data=resume.names, ngroups=5)
+for(j in 2:7){emplogitplot1(call~experience, data=resume.names, ngroups=j, 
+main=j)}
+```
+#Difference between normal log plot and an empirical?
+Is empirical just the linear version of the log regression plot? 
+# Empirical plot 
+looking at the actual data, and doing the empirical plot; it's not a model, it's just a plot of the data. - Empirical plots are just the odds of a group of data happening. 
+- This is like looking at a scatterplot with the LSRL on it for simple linear regression. 
+
+
+5) Use the model from question #1 to perform a hypothesis test to determine if there is 
+significant evidence of a relationship between call and experience. Cite your 
+hypotheses, p-value, and conclusion in context.
+
+Hypotheses: 
+- Ho: coeffecient of experience = 0 
+- Ha: coeffecient of experience != 0
+
+p-value: less than 2.2e-16
+We have evidence to support the alternative hypothesis that the true difference in means is 
+not equal to 0. This means that there is significant evidence of a relationship between call 
+and experience.
+```{r}
+anova(jobxp.mod, test = "Chisq")
+summary(jobxp.mod)
+```
+
+6) Construct a confidence interval for the odds ratio for your model and include a 
+sentence interpreting the interval in the context.
+
+We are 97.5% confident that there will be an increase in the odds of a call back for 
+applicants with more experience.
+
+```{r}
+SE_B1 = summary(jobxp.mod)$coef[2,2]
+exp(B1 - SE_B1*qnorm(0.975))
+## [1] 1.021312
+exp(B1 + SE_B1*qnorm(0.975))
+## [1] 1.058732
+exp(confint.default(jobxp.mod))
+```
+
+7) For each 5-year increase in experience, how does your model predict the odds will 
+change for the applicant getting called back?
+Based on the plot, it appears that as your experience increases, so does the odds that you 
+will get called back.
+
+# Notes: 
+Lets say we have log(odds) = B0+B1x
+When we increase x by 5, we want to see what happens to log (odds) 
+
+THe odds of getting called back will increase by a factor of 1.215796 for experience 
+
+# Logistic regression will spit out a variation of odds at you. If I want to get other numbers, I might have to do other math.  It doesn't always give you probability when it spits things out at you.  
+
+```{r}
+#exp(5*B1)*exp(B0+B1*x) = new odds
+# old odds = exp(B0+B1*x)
+# The question doesn't care about the new and old odds, it cares about the change. 
+
+exp(5*B1)
+```
+
+
+```{r}
+sorted.resume.names = resume.names[order(resume.names$experience),]
+sorted.resume.names
+
+
+experience = sorted.resume.names$experience
+call = sorted.resume.names$call
+
+runMean(experience, 5)[seq(5,length(experience),5)]
+```
+
+```{r}
+call.sums = runSum(call, 5)[seq(5,length(experience), 5)]
+group.size = 5
+call.propo.ad = (call.sums + 0.5)/(group.size + 1)
+logodd.call.ad = log(call.propo.ad/(1-call.propo.ad))
+groups = 26
+group.size = 11
+experience.means = 0
+for(i in 1:groups){
+ experience.means[i] = mean(experience[((group.size*i)-(group.size1)):(group.size*i)])
+}
+call.sums = 0
+for(i in 1:groups){
+ call.sums[i] = sum(call[((group.size*i)-(group.size- 1)):(group.size*i)])
+ }
+call.prop.adj = (call.sums +0.5)/(group.size+1)
+logodd.call.adj = log(call.prop.adj/(1-call.prop.adj))
+plot(logodd.call.adj~experience.means)
+abline(B0,B1)
+```
+
+
+In homework #7 
+we will continue with this data to investigate how the other variables impact an applicant’s 
+chances of being called back.

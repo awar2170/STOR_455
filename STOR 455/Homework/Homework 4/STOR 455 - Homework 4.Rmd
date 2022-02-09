@@ -1,0 +1,334 @@
+---
+title: 'STOR 455 Homework 4'
+subtitle: 40 points - Due  on 10/13 at 5:00pm
+geometry: margin = 2.0cm
+output:
+  word_document: default
+  html_notebook: default
+  pdf_document: default
+---
+
+__Situation:__ Suppose that (again) you are interested in purchasing a used car. How much should you expect to pay?  Obviously the price will depend on the type of car you get (the model) and how much it's been used. For this assignment you will investigate how the price might depend on the age and mileage, as well as the state where the car is purchased.  
+ 
+__Data Source:__ To get a sample of cars, begin with the UsedCars CSV file. The data was acquired by scraping TrueCar.com for used car listings on 9/24/2017 and contains more than 1.2 million used cars. For this assignment you should choose the same car _Model_ and _State_ that you initially chose for homework #2. You should again add a variable called _Age_ which is 2017-year (since the data was scraped in 2017).
+
+__Directions:__ The code below can again be used to select data from a particular _Model_ and _State_ of your choice. The R chunk below begins with {r, eval=FALSE}. eval=FALSE makes these chunks not run when I knit the file. Before you run this chunk, you should revert it to {r}. 
+
+```{r}
+setwd <- "C:/Users/adeve/Desktop"
+UsedCars <- read.csv("UsedCars.csv") 
+source("https://raw.githubusercontent.com/JA-McLean/STOR455/master/scripts/ShowSubsets.R")
+library(readr)
+library(car)
+library(corrplot) 
+library(leaps)
+```
+
+
+```{r}
+# Delete the *** below and enter the model and state from homework #2
+ModelOfMyChoice = "Accord"
+StateOfMyChoice = "TX"
+
+# Takes a subset of your model car from your state
+MyCars = subset(UsedCars, Model==ModelOfMyChoice & State==StateOfMyChoice)
+
+# Add a new variable for the age of the cars.
+MyCars$Age = 2017 - MyCars$Year
+```
+
+#### MODEL #4: Use Age and Miles as predictors for Price ####
+
+1. Construct a model using two predictors (age and miles) with _Price_ as the response variable and provide the summary output.
+```{r}
+mod1 <- lm(Price~Age+Mileage, MyCars)
+summary(mod1)
+```
+
+
+2. Assess the importance of each of the predictors in the regression model - be sure to indicate the specific value(s) from the summary output you are using to make the assessments. Include hypotheses and conclusions in context.
+
+*Based on the notes from chapter 3.4 in the textbook, "t-test for individual predictors show that the interaction term is or is not important to the model." If the term has a low p-value, it is most likely special and important to the regression model.  Both Age and Mileage have extremely low t-tests, which shows that the probability of getting that exact result by chance would be extremely low.* 
+
+3. Assess the overall effectiveness of this model (with a formal test). Again, be sure to include hypotheses and the specific value(s) you are using from the summary output to reach a conclusion.
+
+*ANOVA tells you if the model explains a signifigant amount of variability or if the variability is by chance.  If the model is effective, then the sum of the squared error will be small and the MSModel will be realtively large compared to the MSE. The MSModel is the first row under the Sum Sq column. The MSE is calculated by: MSE = SSE/(n-2). Null Hypothesis: B1 = B2 = 0 (weak model) Alternate Hypothesis: Bi =/= 0 (Effective model)* 
+```{r}
+anova(mod1)
+```
+*The MSModel is very large: 3.2743e+10, or 32743326810.*
+*The MSE is much smaller compared to the MSModel: 6296213.*
+```{r}
+SSE <- anova(mod1)[3,2]
+MSE <- SSE/(1374)
+MSE
+```
+
+*Based on the analysis above, I conclude that this is most likely an effective model.* 
+
+
+4. Compute and interpret the variance inflation factor (VIF) for your predictors.
+*VIF reflects the association between a predictor and all other predictors. We suspect multicollinearity if the VIF is greater than 5, or the R-squared is greater than 80%.*
+*Because the VIF of Age and Mileage are both under 5, we do not suspect any multicollinearity between the two predictors.* 
+```{r}
+vif(mod1)
+```
+5. Suppose that you are interested in purchasing a car of this model that is four years old (in 2017) with 31K miles. Determine each of the following: a 90% confidence interval for the mean price at this age and mileage,  and a 90% prediction interval for the price of an individual car at this age and mileage. Write sentences that carefully interpret each of the intervals (in terms of car prices)
+
+*We are 90% confident that the average price of any 4 year old texas honda accord with 31K miles is between $17156.56 and $17552.69.  We are 90% confident that the average price of one specific 4 year old texas honda accord with 31K miles is between $12428.31 and $22280.94.*
+
+*Choosing the single car must have a wider upper and lower bound because that is for one single car out of the whole batch, instead of the general sample population of cars.*
+
+```{r}
+confint(mod1, level = .90)
+
+newx=data.frame(Age = 4, Mileage = 31000)
+head(newx)
+
+predict.lm(mod1, newx, interval="confidence") # For all 4 year old texas accords 
+predict.lm(mod1, newx, interval="prediction") #For one specific car 
+```
+
+#### MODEL #5: Now Include a Categorical predictor ####
+For this section you will combine both datasets used in Homework #2, as well as a third dataset. Each dataset from Homework #2 included cars from your specific _Model_, but from two different states. You should use the same code that you used in homework #2 to construct this second dataframe with cars from North Carolina, and a third dataframe with cars of your model from a third state of your choice. Then manipulate the code below to combine the three dataframes into one dataframe. Make sure to add the _Age_ variable again to your dataframes for the additional states before binding them together. The R chunk below begins with {r, eval=FALSE}. eval=FALSE makes these chunks not run when I knit the file. Before you run this chunk, you should revert it to {r}.
+
+```{r}
+# Delete the *** below and enter the model and state from homework #2
+ModelOfMyChoice = "Accord"
+StateOfMyChoice = "NC"
+
+# Takes a subset of your model car from your state
+MyCars.NC = subset(UsedCars, Model==ModelOfMyChoice & State==StateOfMyChoice)
+
+# Add a new variable for the age of the cars.
+MyCars.NC$Age = 2017 - MyCars.NC$Year
+```
+
+```{r}
+# Delete the *** below and enter the model and state from homework #2
+ModelOfMyChoice = "Accord"
+StateOfMyChoice = "KY"
+
+# Takes a subset of your model car from your state
+MyCars.KY = subset(UsedCars, Model==ModelOfMyChoice & State==StateOfMyChoice)
+
+# Add a new variable for the age of the cars.
+MyCars.KY$Age = 2017 - MyCars.KY$Year
+```
+
+```{r}
+State1 = MyCars
+State2 = MyCars.NC #fill in with the name of your dataframe
+State3 = MyCars.KY #fill in with the name of your dataframe
+
+# rbind combines the rows in one dataframe, assuming that the columns are the same.
+CombinedStates = rbind(State1, State2, State3)
+names(CombinedStates)
+```
+
+6. Fit a multiple regression model using _Age_, _Mileage_, and _State_ to predict the _Price_ of  the car. 
+*Need to create a variable for if you're a TX Car 0 or 1, or an NC car 0 or 1*
+*KY's Cars are accounted by solving the linear model for 0 TX and 0 NC* 
+*Mod2: Predicted Price = 2.147e+04 - 8.317e+02AGE - 4.804e-02MILEAGE + 7.626e+02NC + 5.864e+02TX* 
+```{r}
+CombinedStates$TX=(CombinedStates$State==2)*1
+CombinedStates$NC=(CombinedStates$State==1)*1
+
+mod2 = lm(Price~Age+Mileage+State, CombinedStates)
+summary(mod2)
+```
+7. Perform a hypothesis test to determine the importance of _State_ terms in the model constructed in question 6. List your hypotheses, p-value, and conclusion.
+
+*To find if state has a statistically signifigant effect on car prices, we look at the individual t-tests for each variable.  We want that eatch have a low p-value because it tells us that your variable is not expected by random chance.*
+
+*If we had a high p-value, then we may be able to get the variable results from a lot of differnet places, so it wouldn't be a special value.  Since we see from the results above that all p-values are less than 0.05, cna can assue that the difference between states has a staistically signifigcant effect on our car prices.*
+
+*The previous test assumes that we have a common slope.  Is is reasonable to assume that we have a common slope?* 
+
+Ho: B3 = 0 
+Ha: B3 =/= 0
+
+*Conclusion: We have evidence to reject the null hypothesis that B3 (State) = 0 because the p-value remains under 0.05.*
+```{r}
+anova(mod2)
+```  
+
+8. Fit a multiple regression model using _Age_, _Mileage_, _State_, and the interactions between _Age_ and _State_, and _Mileage_ and _State_ to predict the _Price_ of  the car.
+```{r}
+mod3=lm(Price~Age+Mileage+factor(State)+Age*factor(State)+Mileage*factor(State),data=CombinedStates)
+summary(mod3)
+anova(lm(Price~Age+Mileage, data=CombinedStates), mod3)
+```
+
+9. Perform a hypothesis test to determine the importance of _State_ terms in the model constructed in question 8. List your hypotheses, p-value, and conclusion.
+*To find if state has a statistically significant effect on car prices, we look at the individual t-tests for each variable.  We want that eatch have a low p-value because it tells us that your variable is not expected by random chance.*
+
+*If we had a high p-value, then we may be able to get the variable results from a lot of differnet places, so it wouldn't be a special value.  Since we see from the results above that all p-values are not less than 0.05, cna can assue that the difference between Age times factor(States) does not have a staistically signifigcant effect on our car prices.*
+
+*The previous test assumes that we have a common slope.  Is is reasonable to assume that we have a common slope?* 
+
+Ho: B4 = 0 
+Ha: B4 =/= 0
+
+*Conclusion: We have evidence to reject the null hypothesis that B3 (State) = 0 because the p-value remains under 0.05.*
+```{r}
+anova(mod2,mod3)
+```
+
+#### MODEL #6: Polynomial models ####
+One of the drawbacks of the linear model in homework #2 was the “free car” phenomenon where the predicted price is eventually negative as the line decreases for older cars. Let’s see if adding one or more polynomial terms might help with this. For this section you should use the dataset with cars from three states that you used for model 5.
+
+10. Fit a quadratic model using _Age_ to predict _Price_ and examine the residuals. Construct a scatterplot of the data with the quadratic fit included. You do not need to specifically cite all conditions for the linear model, but should discuss any issues that you see in the conditions.
+
+*The biggest issue I see with the conditions are the residuals appear to be skewed slightly to the right.  Other than that, all other conditions appear to be met.*
+```{r}
+# polymod <- lm(Price~poly(Age, degree = 2, raw=TRUE), CombinedStates); THis is the same thing as below
+polymod <- lm(Price~Age+I(Age^2), CombinedStates)
+summary(polymod)
+plot(polymod)
+hist(polymod$residuals)
+```
+11. Perform a hypothesis test to determine if this model is significant. List your hypotheses, p-value, and conclusion.
+*To find if age has a statistically significant effect on car prices, we look at the individual t-tests for each variable.  We want that each have a low p-value because it tells us that your variable is not expected by random chance.*
+
+*If we had a high p-value, then we may be able to get the variable results from a lot of different places, so it wouldn't be a special value.  Since we see from the results above that all p-values are less than 0.05, can assume that Age does have a statistically significant effect on our car prices.*
+
+Ho: B2 = 0 
+Ha: B2 =/= 0
+
+*Conclusion: We have evidence to reject the null hypothesis that B2 (Age, degree = 2) = 0 because the p-value remains under 0.05.*
+```{r}
+anova(polymod)
+```
+12. You are looking at a 4-year-old car of your model and want to find an interval that is likely to contain its _Price_ using your quadratic model. Construct an interval to predict the value of this car, and include an interpretive sentence in context. 
+
+*We are 90% confident that the average price of any 4 year old honda accord in TX, NC, or KY is between $14854.42 to $15093.24.  We are 90% confident that the average price of one specific 4 year old TX, NC, or KY honda accord is between $10297.55 to $19650.12.*
+
+*Choosing the single car must have a wider upper and lower bound because that is for one single car out of the whole batch, instead of the general sample population of cars.*
+```{r}
+confint(polymod, level = .90)
+
+newx=data.frame(Age = 4)
+head(newx)
+
+predict.lm(polymod, newx, interval="confidence") # For all 4 year old TX, NC, and KY accords 
+predict.lm(polymod, newx, interval="prediction") # For one specific car 
+```
+
+13. Does the quadratic model allow for some _Age_ where a car has a zero or negative predicted price? Justify your answer using a calculation or graph.
+
+*As shown on the graph, the quadratic model does not allow for some age where the car has a zero or negative predicted price. The minimum predicted price, based on the graph, appears to be about $5,000.  The graph then begins to curve upwards before it reaches 0.*
+
+```{r}
+summary(polymod)
+B0.1 = summary(polymod)$coefficients[1,1] # Intercept
+B1.1 = summary(polymod)$coefficients[2,1] # Slope Age
+B2.1 = summary(polymod)$coefficients[3,1] # Slope Age^2
+
+plot(Price~Age, CombinedStates)
+curve(B1.1*x+B2.1*I(x^2)+B0.1, col = "green", add=TRUE)
+```
+
+14. Would the fit improve significantly if you also included a cubic term? Does expanding your polynomial model to use a quartic term make significant improvements? Justify your answer.
+
+*Cubemod appears to fit the graph much better than the previous models. There is a slight skew in the residuals, but other than that the other graphs associated look good.  I will do a nested f-test further down to further test if cubemod is truely better than quarticmod*
+```{r}
+cubemod <- lm(Price~Age+I(Age^2)+I(Age^3), CombinedStates)
+summary(cubemod)
+# plot(cubemod), I commented this out for the sake of the knitted file
+hist(cubemod$residuals)
+
+B0.1.cube = summary(cubemod)$coefficients[1,1] # Intercept
+B1.1.cube = summary(cubemod)$coefficients[2,1] # Slope Age
+B2.1.cube = summary(cubemod)$coefficients[3,1] # Slope Age^2
+B3.1.cube = summary(cubemod)$coefficients[4,1] # Slope Age^3
+
+plot(Price~Age, CombinedStates)
+curve(B1.1.cube*x+B2.1.cube*I(x^2)+B3.1.cube*I(x^3)+B0.1.cube, col = "green", add=TRUE)
+```
+*Based on the summary output of quarticmod, adding the quarticmod makes Age^3 and Age^4 no longer statistically significant in the model.  This decreases the effectiveness of the model, and makes quarticmod a less desirable model to use*
+```{r}
+quarticmod <- lm(Price~Age+I(Age^2)+I(Age^3)+I(Age^4), CombinedStates)
+summary(quarticmod)
+# plot(quarticmod) I commented this out for the sake of the knitted file.
+hist(quarticmod$residuals)
+
+B0.1.quartic = summary(quarticmod)$coefficients[1,1] # Intercept
+B1.1.quartic = summary(quarticmod)$coefficients[2,1] # Slope Age
+B2.1.quartic = summary(quarticmod)$coefficients[3,1] # Slope Age^2
+B3.1.quartic = summary(quarticmod)$coefficients[4,1] # Slope Age^3
+B4.1.quartic = summary(quarticmod)$coefficients[5,1] # Slope Age^4
+
+plot(Price~Age, CombinedStates)
+curve(B1.1.quartic*x+B2.1.quartic*I(x^2)+B3.1.quartic*I(x^3)+B4.1.quartic*I(x^4)+B0.1.quartic, col = "green", add=TRUE)
+```
+```{r}
+anova(cubemod, quarticmod)
+```
+*Based on the nested f test above, the quarticmod is not better for the data than the cubic mod.* 
+
+#### MODEL #7: Complete second order model ####
+For this section you should again use the dataset with cars from three states that you used for models 5 and 6.
+
+15.	Fit a complete second order model for predicting a used car _Price_ based on _Age_ and _Mileage_ and examine the residuals. You do not need to specifically cite all conditions for the linear model, but should discuss any issues that you see in the conditions.
+
+*The conditions for linear appear to be met. The residuals appear to be skewed to the right.  Additionally, the cook's distance plot shows that there are some points that have very high leverage, but there does not appear to be any points outside of the 0.5 and 1 cook's distance plot.* 
+```{r}
+secondordermod <- lm(Price~Age+Mileage+I(Age^2)+I(Mileage^2)+I(Age*Mileage), CombinedStates)
+summary(secondordermod)
+plot(secondordermod)
+hist(secondordermod$residuals)
+```
+
+16. Perform a hypothesis test to determine if the model constructed in question 15 is significant. List your hypotheses, p-value, and conclusion.
+*To find if the model in question is significant, we look at the individual t-tests for each variable.  We want that each have a low p-value because it tells us that your variable is not expected by random chance.*
+
+*If we had a high p-value, then we may be able to get the variable results from a lot of different places, so it wouldn't be a special value.  Since we see from the results above in the summary and below in the anova that all p-values are less than 0.05, can assume that the model is significant.*
+
+Ho: Bi = 0 
+Ha: Bi =/= 0
+
+*Conclusion: We have evidence to reject the null hypothesis that Bi = 0 because the p-value remains under 0.05.*
+
+
+```{r}
+anova(secondordermod)
+```
+*ANOVA tells you if the model explains a signifigant amount of variability or if the variability is by chance.  If the model is effective, then the sum of the squared error will be small and the MSModel will be realtively large compared to the MSE. The MSModel is the first row under the Sum Sq column. The MSE is calculated by: MSE = SSE/(n-2). Null Hypothesis: B1 = B2 = 0 (weak model) Alternate Hypothesis: Bi =/= 0 (Effective model)* 
+
+*The MSModel is very large: 3100543131.*
+*The MSE is much smaller compared to the MSModel: 2256582.*
+```{r}
+SSE.second <- anova(secondordermod)[3,2]
+SSE.second
+MSE.second <- SSE.second/(1374)
+MSE.second
+```
+
+*Based on the analysis above, I conclude that this is most likely an effective model.* 
+
+
+17. Perform a hypothesis test to determine the importance of just the *second order terms* (quadratic and interaction) in the model constructed in question 15. List your hypotheses, p-value, and conclusion.
+
+Ho: Bi = 0 
+Ha: Bi =/= 0
+
+*Conclusion: We do not have evidence to reject the null hypothesis that Bi = 0 because the p-value of I(AgexMileage) is greater than 0.05.*
+```{r}
+secondordermod.second.terms <- lm(Price~I(Age^2)+I(Mileage^2)+I(Age*Mileage), CombinedStates)
+anova(secondordermod.second.terms)
+```
+
+
+18. Perform a hypothesis test to determine the importance of just the terms that involve _Mileage_ in the model constructed in question 15. List your hypotheses, p-value, and conclusion.
+
+Ho: Bi = 0 
+Ha: Bi =/= 0
+
+*Conclusion: We have evidence to reject the null hypothesis that Bi = 0 because the p-value remains under 0.05.*
+```{r}
+secondordermod.mile <- lm(Price~Mileage+I(Mileage^2)+I(Age*Mileage), CombinedStates)
+anova(secondordermod.mile)
+```
+
+

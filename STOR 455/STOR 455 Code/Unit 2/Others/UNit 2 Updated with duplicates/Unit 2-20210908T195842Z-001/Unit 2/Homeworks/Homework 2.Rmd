@@ -1,0 +1,96 @@
+---
+title: 'STOR 455 Homework #2'
+subtitle: '40 points - Due Wednesday 9/15 at 5:00pm'
+geometry: margin = 2.0cm
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+__Situation:__ Suppose that you are interested in purchasing a used car. How much should you expect to pay?  Obviously the price will depend on the type of car you get (the model) and how much it's been used. For this assignment you will investigate how the price might depend on the age and mileage.  
+ 
+__Data Source:__ To get a sample of cars, begin with the UsedCars CSV file. The data was acquired by scraping TrueCar.com for used car listings on 9/24/2017 and contains more than 1.2 million used cars. For this assignment you will choose a car _Model_ for which there are at least 100 of that model listed for sale in a state of your choice (that is not North Carolina). After constructing a subset of the UsedCars data under these conditions,  check to make sure that there is a reasonable amount of variability in the years and mileages for your car (ie, all of your cars are not from the same year). The model that you choose should have cars ranging over at least 5 years. You should add a variable called _Age_ which is 2017-year (since the data was scraped in 2017).
+
+__Directions:__ The code below should walk you through the process of selecting data from a particular model and state of your choice. Each of the following two R chunks begin with {r, eval=FALSE}. eval=FALSE makes these chunks not run when I knit the file. Before you knit these chunks, you should revert them to {r}.
+
+```{r}
+library(readr)
+
+# This line will only run if the UsedCars.csv is stored in the same directory as this notebook!
+UsedCars <- read_csv("UsedCars.csv")
+
+# Delete the ** below and enter the two letter abbreviation for the state of your choice.
+StateOfMyChoice = "TX"
+
+# Creates a dataframe with the number of each model for sale in your state
+Cars = as.data.frame(table(UsedCars$Model[UsedCars$State==StateOfMyChoice]))
+
+# Renames the variables
+names(Cars)[1] = "Model"
+names(Cars)[2] = "Count"
+
+# Restricts the data to only models with at least 100 for sale
+# Before submitting, comment this out so that it doesn't print while knitting
+Enough_Cars = subset(Cars, Count>=100)
+Enough_Cars
+```
+
+```{r}
+# Delete the ** below and enter the model that you chose from the Enough_Cars data.
+ModelOfMyChoice = "1500Lone"
+
+# Takes a subset of your model car from your state
+MyCars = subset(UsedCars, Model==ModelOfMyChoice & State==StateOfMyChoice)
+
+# Check to make sure that the cars span at least 5 years.
+range(MyCars$Year)
+
+# Add a new variable for the age of the cars.
+MyCars$Age = 2017 - MyCars$Year
+```
+
+#### MODEL #1: Use Age as a predictor for Price ####
+
+1.	Calculate the least squares regression line that best fits your data. Interpret (in context) what the slope estimate tells you about prices and ages of your used car model. Explain why the sign (positive/negative) makes sense.
+
+2.	Produce a scatterplot of the relationship with the regression line on it.
+
+3.	Produce appropriate residual plots and comment on how well your data appear to fit the conditions for a linear model. Don't worry about doing transformations at this point if there are problems with the conditions.
+
+4.	Find the car in your sample with the largest residual (in magnitude - positive or negative). For that car, find its standardized and studentized residual. Based on these residuals, could this value be considered influential? 
+
+5.  Determine the leverages for the cars with the ten largest absolute residuals. What do these leverage values say about the potential for each of these ten cars to be influential on your model?
+
+6. Determine the Cook's distances for the cars with the ten largest absolute residuals. What do these Cook's distance values say about the influence of each of these ten cars on your model?
+
+7.	Compute and interpret in context a 90% confidence interval for the slope of your regression line.
+
+8.	Test the strength of the linear relationship between your variables using each of the three methods (test for correlation, test for slope, ANOVA for regression). Include hypotheses for each test and your conclusions in the context of the problem.
+
+9.	Suppose that you are interested in purchasing a car of this model that is four years old (in 2017). Determine each of the following: 90% confidence interval for the mean price at this age and 90% prediction interval for the price of an individual car at this age. Write sentences that carefully interpret each of the intervals (in terms of car prices).
+
+10.	Experiment with some transformations to attempt to find one that seems to do a better job of satisfying the linear model conditions. Include the summary output for fitting that model and a scatterplot of the original data with this new model (which is likely a curve on the original data). Explain why you think that this transformation does or does not improve satisfying the linear model conditions.
+
+11.	According to your transformed model, is there an age at which the car should be free?  If so, find this age and comment on what the "free car" phenomenon says about the appropriateness of your model.
+
+12. Again suppose that you are interested in purchasing a car of this model that is four years old (in 2017). Determine each of the following using your model constructed in question 9: 90% confidence interval for the mean price at this age and 90% prediction interval for the price of an individual car at this age. Write sentences that carefully interpret each of the intervals (in terms of car prices).
+
+#### MODEL #2: Use Mileage as a predictor for Price ####
+
+13.	Calculate the least squares regression line that best fits your data (with _Mileage_ now as the predictor) and produce a scatterplot of the relationship with the regression line on it.
+
+14.	Produce appropriate residual plots and comment on how well your data appear to fit the conditions for a simple linear model. Don't worry about doing transformations at this point if there are problems with the conditions.
+
+15. Experiment with some transformations to attempt to find one that seems to do a better job of satisfying the linear model conditions. Include the summary output for fitting that model and a scatterplot of the original data with this new model (which is likely a curve on the original data). Explain why you think that this transformation does or does not improve satisfying the linear model conditions.
+
+16. How do the models, using either _Age_ or _Mileage_ as the predictor compare? Does one of the models seem "better" or do they seem similar in their ability to predict _Price_? Explain.
+
+#### MODEL #3: Again use Age as a predictor for Price, but now for new data #### 
+
+17. Select a new sample from the UsedCar dataset using the same _Model_ car that was used in the previous sections, but now from cars for sale in North Carolina. You can mimic the code used above to select this new sample.
+
+18. Calculate the least squares regression line that best fits your new data and produce a scatterplot of the relationship with the regression line on it.
+
+19. How does the relationship between _Price_ and _Age_ for this new data compare to the regression model constructed in the first section? Does it appear that the relationship between _Age_ and _Price_ for your _Model_ of car is similar or different for the data from your two states? Explain.
+
+20. Again suppose that you are interested in purchasing a car of this model that is four years old (in 2017) from North Carolina. How useful do you think that your model will be? What are some possible cons of using this model?

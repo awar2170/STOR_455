@@ -1,0 +1,341 @@
+---
+title: "STOR 455 Class 30 R Notebook"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r message=FALSE, warning=FALSE}
+library(readr)
+library(bestglm)
+library(Stat2Data)
+
+insurance <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/insurance.csv")
+```
+- Looking at something like mallowCp and see which one is most likely based on teh precitors and a few other things -  
+
+1. Only the resposne and possible predictors variables should be withing the datagrame 
+2. te response variable must be the last column in teh dataframe. 
+
+We need to tell R.  We need to think what we don't want in the model ; if we have accept anad acceptance in teh model,then we are going to get some errors abecause they are the same things; there are issues because the logistical model wouldn't work as well because it would be a straight vertial line. 
+
+WE could chosoe teh specific columns we want or choose teh ones we dont' want with negative index ;
+
+__Example: Predicting Medical School Acceptance__
+Data:   MedGPA   
+Accept	Status: A=accepted to medical school or D=denied admission
+Acceptance	Indicator for Accept: 1=accepted or 0=denied
+Sex	F=female or M=male
+BCPM	Bio/Chem/Physics/Math grade point average
+GPA	College grade point average
+VR	Verbal reasoning (subscore)
+PS	Physical sciences (subscore)
+WS	Writing sample (subcore)
+BS	Biological sciences (subscore)
+MCAT	Score on the MCAT exam (sum of CR+PS+WS+BS)
+Apps	Number of medical schools applied to
+
+Find the “best” model for Acceptance using some or all of these predictors. 
+
+```{r}
+data(MedGPA)
+head(MedGPA)
+```
+below shows how to set accetance to null, that deltes teh accept vars. 
+
+best glm wants the response in the specific part of the dataframe, wants it in teh last section ; if your thing is named soemthign sepciifc, it sometimes acts differently, but mostly this is different.
+
+THe second part of the code below reorders teh columns with teh response value last so that the glm is better. THere are other ways that you can do this, but this is for consistency.
+
+__bestglm for Model Selection__
+Requirements to use bestglm()
+1. Only the response and possible predictor variables should be within the dataframe
+```{r}
+MedGPA.1 = within(MedGPA, {Accept = NULL}) #delete Accept variable
+head(MedGPA.1)
+```
+Above we could have just overwritten the thing; but this is easy to make the running the cell a lot of times and then it will be fine. 
+
+using the best glm fucntion; just like when makign teh lienar model, we need to tell it which family of functions to draw from; it's going to look at a LSRL if we dno't tell it otherwise 
+
+family = binomial tells you to make it logistics. 
+
+2. The response variable must be the last column in the dataframe.
+```{r}
+MedGPA.2 = MedGPA.1[,c(2:10,1)] #reorder columns with response last
+#bestglm for Model Selection
+head(MedGPA.2)
+```
+
+Tell em about teh BIC and BICQ
+ DO the same thing, but same it as an object 
+ 
+ The best nmodels will tell you how many best models there arel 
+ 
+ the top rowis the best model that you would like 
+ 
+ the next four best models are the other best models 
+ 
+ BIC = the baysian information criteria ; we are going to use it like mallowCp 
+ 
+ calculated like: klog(n) - 2log(L(alpha)); 
+ n = sample size 
+ k = number of predictors 
+ alpha = set of all paramets 
+ L(alpha) = probability of obtraining the data which you have, supposing the modelbeing tested was given 
+
+*SMaller values indicate preferred models* 
+
+tells you we got teh data ttha we give given the model 
+
+there si going to be a best, but there migh tnot be a stat difference between teh things; 
+
+it's saying on ce we take teh neg 2log, that its nmmore likely that it gen teh data thta we got 
+the value is based on teh samp size and num predictors 
+it could still bea g odoo number if we have different predictors 
+
+most are within 0-2 BIC, so there are not much difference between them . 
+
+there sin't much difference between teh models 
+its easier to get teh data, but it's not very stats;  E don't really know that, but these look pretty similar 
+
+__bestglm for Model Selection__
+BIC = Bayesian Information Criteria
+```{r}
+bestglm(MedGPA.2, family=binomial)
+```
+
+__Bayesian Information Criteria__
+k log(n)- 2log(L(θ̂))
+
+n : sample size
+k : number of predictors 
+θ : set of all parameters.
+L(θ̂) :probability of obtaining the data which you have, supposing the model being tested was a given.
+
+Selection criteria, similar to Mallow’s Cp
+Smaller values indicate preferred models
+
+__Comparing Models by BIC__
+Change in BIC; Evidence against hiher BIC 
+0-2; Little 
+2-6; POsitive
+6-10; Strong
+greater than 10; Very strong 
+
+```{r}
+MedGPA.2.bestglm = bestglm(MedGPA.2, family=binomial)
+MedGPA.2.bestglm$BestModels
+```
+__Example: Predicting Survival__
+Data:   ICU   
+ID 	Patient ID code 
+Survive 	1=patient survived to discharge or 0=patient died 
+Age 	Age (in years) 
+AgeGroup 	1= young (under 50), 2= middle (50-69), 3 = old (70+) 
+Sex	1=female or 0=male
+Infection	1=infection suspected or 0=no infection 
+SysBP 	Systolic blood pressure (in mm of Hg) 
+Pulse 	Heart rate (beats per minute) 
+Emergency 	1=emergency admission or 0=elective admission
+
+Find the “best” model for Survival using some or all of these predictors. 
+
+```{r}
+data("ICU")
+head(ICU)
+```
+
+```{r}
+#Requirements to use bestglm()
+#1. Only the response and possible predictor variables should be within the dataframe
+ICU.1 <- within(ICU, {ID = NULL}) #delete ID variable
+
+#delete ID variable
+# WHy do we delete teh ID Variable? We probably don't need it because each row = the incident number
+
+#2. The response variable must be the last column in the dataframe.
+#reorder columns with response last; column 1 is now the survived column because the ID column was deleted.
+ICU.2 = ICU.1[,c(2:8,1)] #reorder columns with response last
+
+# AgeGroup is Treated as Quantitative 
+head(ICU.2)
+
+bestglm(ICU.2, family=binomial)
+# THis tells me that teh best variable to predict survived is Emergency
+
+bestglm(ICU.2, family=binomial)$BestModels
+# The criteria doesn't change very much between teh first three models 
+# Criteria is teh BIC; we want this to be low 
+
+#THe data is teaching Age group as a numerical verabiel, we need to cahnge it to a cateorical variable if we want to look at each age group 
+```
+
+*BElow is how to make agegroup a categorical variable* 
+We are reassingin tee variable age group as teh factor of age group, so this breaks it into whatever age groups that are under agegroup category. 
+```{r}
+ICU_factor_AgeGroup = ICU.2 
+ICU_factor_AgeGroup$AgeGroup = factor(ICU_factor_AgeGroup$AgeGroup)
+
+head(ICU_factor_AgeGroup)
+```
+
+below is running the log model on the log model, but wiht age group sections differentiated.
+```{r}
+bestglm(ICU_factor_AgeGroup, family=binomial)
+```
+
+now it's not using age group; but it's giving more datapoints 
+there is a change in the amount of predictirs 
+we dont expect the below to be the same as the above ones, because we added more varaibles by levling teh age group 
+
+this goes with us a warning: "Factors rpesent with more than 2 level" it's saying one thing is more than 2 levels; we its telling us taht there are more to teh columns that they give us
+```{r}
+ICU_factor_AgeGroup_bestglm = bestglm(ICU_factor_AgeGroup, family=binomial)
+ICU_factor_AgeGroup_bestglm$BestModels
+
+```
+Below is making the age groups, assigning numbers; so if tha agegroup was 2, then put a 1, if it was 3, then put a 1, then the last code removes the agegroup column because we don't need age group anymore since we included teh dummy predictors in the first two lines of code below. 
+
+below is what bestglm is doing.  This looked at the data tiself.  IT didn't look at atransformation if we ignore tranformation, then we have the ebst model here. 
+
+But should we ignore tranofmromatio? 
+
+NOt always. 
+```{r}
+#Requirements to use bestglm()
+# 3. Create dummy variables for non binary categorical variables.
+
+ICU.2$AgeGroup2 = ifelse(ICU.2$AgeGroup==2,1,0)
+ICU.2$AgeGroup3 = ifelse(ICU.2$AgeGroup==3,1,0)
+ICU.3 <- within(ICU.2, {AgeGroup = NULL}) #delete AgeGroup variable
+ICU.4 = ICU.3[,c(1:6,8,9,7)] #reorder columns with response last
+
+head(ICU.4)
+
+bestglm(ICU.4, family=binomial)
+
+# Comparing Models by BIC
+ICU.4.bestglm = bestglm(ICU.4, family=binomial)
+ICU.4.bestglm$BestModels
+```
+
+We are assuming that age has teh same impact on surivial as old people; so age in general causes teh same surivial results. 
+
+WE can guess tho; if older peopple come in that is going to be different than if younger people are going in for an enermcy.  WE can do that with an emperical logit plot.  
+
+THis logitplot will help us split by a factor for those brough tin with emergency and not emergency. 
+if you run into errors with emplogitplot, then you can just factor the variables and sometimes that helps. Factor the last variable only, if that doesnt work, then factor others 
+__bestglm for Model Selection__
+
+```{r}
+emplogitplot2(Survive~Age+factor(Emergency), data=ICU.4, ngroups=10)
+```
+We are assuming that age has teh same impact on surivial as old people; so age in general causes teh same surivial results. 
+
+WE can guess tho; if older peopple come in that is going to be different than if younger people are going in for an enermcy.  WE can do that with an emperical logit plot.  
+
+THis logitplot will help us split by a factor for those brough tin with emergency and not emergency. 
+if you run into errors with emplogitplot, then you can just factor the variables and sometimes that helps. Factor the last variable only, if that doesnt work, then factor others 
+```{r}
+ICU.4$EMAGE = ICU.4$Age*ICU.4$Emergency
+head(ICU.4)
+
+ICU.5 = ICU.4[,c(1:8,10,9)] # THis moves surive to teh end of the columns, so that wecan keep doing the code with bestgml. 
+head(ICU.5)
+
+x = bestglm(ICU.5, family=binomial)
+
+x$BestModels
+```
+Someitmes best subsets isn't as useful as we think so; for example: when you have categorical variables, soemtimes they are not immediately reflected through the best mdoels 
+
+*Use bestglm when you have binary categorical variables and when you have quantitative variables* IF you want to add interections adn transformations, then it will cause issues 
+
+THe ICU dataset was really nice, ti was really clean and easy to work with, but the below is less clean; insurance. How much you pay is based on a huge amount of htings; WHo elese do we haev data on that is like you and how much do we think that you and them are going toet in an accident and cost us moeny 
+
+index is just a number, there are 8k people; 
+target flag = accident or no 
+ltager amount= insurance costs 
+- the first 6 rows, the first frow only 1
+there are a lot of other types of things; 
+red care = more insuance; previous thing; own a home, etc.   so much we could deal with when making this. 
+
+THere are some probelms: 
+1. a lot of the these money variables, are character vectors and not numerical 
+2. some variabels are not binary, which is okay, but we also see thery're saved as characters 
+- characters and factors are different, and bestglm doesn't like characters, they like factors.  
+
+WIll look back at this next class 
+
+*How to find the variables for the logistical regression models* 
+- Bestglm 
+- backgwards
+- formard
+- stepwise
+```{r}
+head(insurance)
+```
+
+__Issues with Insurance Data for bestglm__
+
+- Stepwise Regression (Linear Regression)
+Basic idea: Alternate forward selection and backward elimination
+1. Use forward selection to choose a new predictor and check its significance.
+2. Use backward elimination to see if predictors already in the model can be dropped.
+
+__Is there a package in R to automate this process?__
+Yes! The stepAIC function in the MASS package can be used.
+- But we dont learn how to use it yet
+
+Your task is to investigate the stepAIC function to determine how it can be used to determine the best logistic regression model using the insurance data
+
+```{r}
+Currency_Convert <- function(Field){
+  Field <- as.numeric(gsub("\\$|,","", Field))
+}
+
+#Change factors to numbers
+insurance$HOME_VAL_num = Currency_Convert(insurance$HOME_VAL)
+insurance$INCOME_num = Currency_Convert(insurance$INCOME)
+insurance$BLUEBOOK_num = Currency_Convert(insurance$BLUEBOOK)
+insurance$OLDCLAIM_num = Currency_Convert(insurance$OLDCLAIM)
+
+#remove unneeded variables
+insurance.1 = within(insurance, 
+                     {INDEX = NULL
+                     TARGET_AMT = NULL
+                     HOME_VAL = NULL
+                     INCOME = NULL 
+                     BLUEBOOK = NULL
+                     OLDCLAIM = NULL})
+
+
+head(insurance.1) 
+```
+
+```{r}
+insurance.2 = insurance.1[,c(2:24,1)] 
+head(insurance.2)
+```
+
+
+```{r}
+#Sad trombone, because best gml wont run here
+insurance.2 = as.data.frame(insurance.2)
+#bestglm(insurance.2, family=binomial)
+```
+
+```{r}
+library(dplyr)
+insurance.2.1 = insurance.2 %>% mutate_if(is.character, factor)
+head(insurance.2.1)
+```
+
+```{r}
+#Sadder trombone; because bestglm won't run 
+insurance.2.1 = as.data.frame(insurance.2.1)
+#bestglm(insurance.2.1, family=binomial)
+```
+

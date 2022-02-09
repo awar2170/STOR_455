@@ -1,0 +1,120 @@
+---
+title: "STOR 455 Class 5 R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+rm(list=ls())
+# Class Notes
+SImple linear model
+- Trying to fit the line based onteh sample that we have 
+- zero mean is always met with the least squares regression 
+- we had to look at: 
+- linearliarty, costastnt variance, and normalitiy; contastant variace = how is it stretched out 
+
+# What do do when regression assumptions are violated 
+- non line patterns in residuals, etc, 
+- DO DATA TRANSFORMATINOS; like nat logs to make the thing look more like what we want 
+
+```{r message=FALSE, warning=FALSE}
+# message=FALSE, warning=FALSE suppress warnings and messages from appearing in knitted files
+
+library(readr)
+library(Stat2Data)
+```
+# Notes 
+The state2data gives us stuff from our textbook 
+```{r}
+data("SpeciesArea")
+head(SpeciesArea)
+
+# Trying to predict number of speciies based on size of island 
+plot(Species~Area, SpeciesArea)
+# THis looks like a log graph; a linear pattern isn't going to work 
+# DOuble checking tha tit isn't going tow ork 
+mod1 <- lm(Species~Area, SpeciesArea)
+abline(mod1) # This still looks bad 
+
+plot(mod1, 1:2) #Gives us fitted and QQ Plot 
+# Constant variance isn't an issue 
+# NOrm of residuals, the tails are a little bad, but we can work with taht 
+# Fitted plot, we see what is wrong in teh scatter plot first, its just around the hor line 
+```
+# What if want to look at outliers and those furthest away? 
+HOw far above the line is tha tpoint; we want to use teh max function 
+then you can say "which.max" function which tells you which one 
+```{r}
+max(mod1$residuals)
+which.max(mod1$residuals) # Tells us that on row three 
+SpeciesArea[3,]
+```
+# We Can do a transformation that will change it; it's not always going to be a log transformation, but we are going to use it this time 
+```{r}
+plot(log(Species)~log(Area), SpeciesArea)
+mod2 <- lm(log(Species)~log(Area), SpeciesArea)
+abline(mod2) # THis looks much more linear 
+```
+Lets look a little deeper 
+```{r}
+summary(mod2)
+
+# Pull out things to auto calc predictions
+B0 <- summary(mod2)$coef[1,1] # Intercept; want to pull out the coeff table; this is after teh $; the names aren't part of the table so [1,1] will take teh intercept from the lm sum 
+B1 <- summary(mod2)$coef[2,1] # Slope; same idea as a bove, but the second row, 1st column
+
+plot(Species~Area, SpeciesArea)
+# WE need to solve for the response; need tos olve for species; just doing math to solve for x because we have a function that gives us predicted area 
+# exp(B0)^x^B1; we want to plot this 
+curve(exp(B0)^x^B1, add = TRUE ) # I want to put this ontop of the plot that I just made, so add "Add = TRUE")
+
+```
+
+# Example 2: Artice Sea Ice #
+- Look at teh actual area, the outer boundary of the ice, not account for gaps inside of the area 
+
+```{r}
+data("SeaIce")
+head(SeaIce)
+
+plot(Extent~t, SeaIce)
+modi <- lm(Extent~t, SeaIce)
+abline(modi) # THe line is alright 
+
+plot(modi, 1:2)
+```
+
+```{r}
+plot(modi$residuals~modi$fitted.values)
+abline(0,0)
+
+abline(v=c(5.65,6.52), 
+       col=c("red", "red"), 
+       lty=c(2,2), 
+       lwd=c(1, 1)) #Draws red dashed vertical lines; # lwd = width 
+
+plot(modi, 1:2)
+```
+
+## Try power transformations ## 
+What would happen if raised toa  power? 
+HOw does a power change your plot?
+
+```{r}
+data("SeaIce")
+head(SeaIce)
+
+plot(Extent~t^5, SeaIce)
+modi <- lm(Extent^5~t, SeaIce) # If you try raising the X value, R thinks that you're doing it wrong; you need tomake R look at it how you want; need to use insulate I()
+
+plot(modi, 1:2)
+```
+
+HOw to plot your transform on the oring data 
+```{r}
+plot(Extent~t, SeaIce)
+B0.i <- summary(modi$coef[1,1])
+B1.i <- summary(modi$coef[2,1])
+
+curve((B0.i+B1.i^x)^0.2, add = TRUE) # Doesn't call it, but that's fine, check the notebook 
+
+```

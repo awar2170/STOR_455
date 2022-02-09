@@ -1,0 +1,252 @@
+---
+title: "STOR 455 - Class 21 - R Notebook"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r message=FALSE, warning=FALSE}
+library(readr)
+StateSAT <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/StateSAT.csv")
+Pulse <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/Pulse.csv")
+```
+
+__Example: State SAT Scores__
+Source:    Statistical Sleuth, Case 12.1 pg. 339  
+Response Variable:     
+      SAT    =Average combined SAT Score
+Potential Predictors:  
+     Takers  = % taking the exam
+     Income = median family income ($100’s)
+     Years    = avg. years of study (SS, NS, HU)
+     Public   = % public school
+     Expend = spend per student ($100’s)
+     Rank     = median class rank of takers
+
+__Second Order Models__
+- Definition: A second order model for two quantitative predictors would be Y = Bo + First Order + First Order + Quadratic + Quadratic + Interaction, where Quadratic + Quadratic _ Interaction = Second ORder 
+- Y = B0 + B1X1 + B2X2 + B3X1^2 + B4X2^2 + B5X1*X2 + Error
+- Example: Try a full second order model for Y=SAT using X1=Takers and X2=Expend
+
+*Previously on* 
+- We did with taker's vsariable 
+- We looked at quadratic, transformation alone wasnt good enoughb/c we can't change vertex 
+- Cubic didn't give us much there 
+- we could keep going, but we're probabbly going to overfit too much if we kept going 
+*Polynomial regression in other dimensions* 
+- It can extend to other dimensions 
+- When we have 2 dimentions, it's a plane, but as we add more, then it's not technically a line, but we call it a line 
+- A curved plane in 3D, we are building this polynomial with 2 extra predictors 
+- We are looking at the terms themselves and also looking at the squared terms themsevles adnthe interaction between them (this is the second order model we are looking at)
+
+```{r}
+# Full SEcond ORder Model 
+modSAT2ndorder=lm(SAT~Takers+Expend+I(Takers^2)+I(Expend^2)+I(Takers*Expend),data=StateSAT)
+summary(modSAT2ndorder)
+
+# Summary at bottom tells us the overall anova test 
+# Ho: coef of all the coef are zero vs the Ha: at least one is non zero <- for the ANOVA test 
+# Low pvalue - There is a relationship with at least one of these predictors 
+# Looking at the individual predictors and there are many that are very low 
+# The itneraction term is now a sig pvalue 
+# FOr a model like this for polynomial regression or the compelte second order model, when we are looking at adding categorical variables, we don't want ot pick and choose different parts of this model and keep them 
+# We want either a full polynomial model with all the degrees of the predictor in it or some other model 
+# Even though the interaction term isn't sig, we don't want to get rid of it 
+
+# Residual analysis 
+# Linearity looks good 
+# Normal looks pretty good, some devation but pretty good 
+
+# overall: Seems like a good model 
+
+# Adj R squared; almost 90% of the varability is predicted by this model 
+# One warning error: There are some weird things with the plot, but don't worry about that; AK is just giving us a leverage warning 
+
+# Do we need the interaction term? 
+# YEs, if we have the other htings 
+
+# Do we need the second order terms?
+# Are any useful? Takers and linear parts of it, and the squared value 
+# Do the extra terms give us much improvement vs a model without it? We can't tell that from teh summary table, we have to do some drop in deviance test to tell that or a nested test 
+
+# Do we need the terms with Expend?
+# A model with just tackers was a good model, and that is a subset of this one, so do we need the extra things? 
+```
+
+__NEsted test to see if we don't need the additional terms__ 
+```{r}
+modSAT2ndorder_Reduced=lm(SAT~Takers+Expend+I(Takers^2)+I(Expend^2),data=StateSAT)
+anova(modSAT2ndorder_Reduced, modSAT2ndorder) # named mod2 in the lecutre, may refer to as mod2
+# If wanted to see the additional terms int eh second order, we can do an anova test with teh mod2 and the full model from the previoud chunck 
+# THis is a hypo test askign if any of the additional second order model terms are useful for us 
+# Null: Is the coef for takers squared, explanatory square and the itnearction all equal to zero 
+# Alternative: Do we have evidence that they are not equal to zero? (Meaning that there is some sig)
+# Low pvalue - at least one is non zero 
+# The full second order mdoel looks like an improvemnet instead of jsut using a linear model 
+
+# What if we build a model with jsut the taker's terms in it? 
+modSAT2ndorder_Reduced2=lm(SAT~Takers+Expend, data=StateSAT)
+anova(modSAT2ndorder_Reduced2,modSAT2ndorder)
+# The above anova test checks that 
+# Ho: Is the coef for expend, expend^2, and interaction = 0  
+# HA: Is coef for at least one != 0 
+# Small pvalue, at least one is nonzero 
+# This might be the more ideal model 
+# WE shoudl also check the lienar model conditions
+
+# Linear model conditions are good 
+modSAT2ndorder_Reduced3 = lm(SAT~Takers+I(Takers^2),data=StateSAT)
+anova(modSAT2ndorder_Reduced3, modSAT2ndorder)
+
+# not going to look at very much, but this really is so you cna use it if you don't want to or transofmration just aren't doing it 
+```
+
+**Would our model do a good job at predicting future if we got a different set of data?** 
+
+__Cross Validation__
+- Concern: A model may reflect the structure of a particular sample, but not generalize well to the population. 
+- Cross validation checks for overfitting
+
+**To see if this is a problem:** 
+Split the original sample into two parts
+	(a) A “training” sample to build a model
+	(b) A “holdout” sample to test the model 
+	
+1. Build model on a training set, 
+- subset it to build the model 
+- keep a holdout testing sampel to see how well the model does with teh new data 
+- sometimes you will have to break it up yourself 
+
+__Example: Pulse Rates__
+Response Variable:     
+		Active pulse
+Predictors:  
+		Resting pulse
+ 	  Hgt
+		Wgt
+		Sex 		 (0=M, 1=F)
+		Smoke 	 (0=No, 1=Yes)
+		Exercise	 (1=Slight, 2=Moderate, 3=Lots)
+
+__Example: Active Pulse Rates__
+Training sample – first 300 cases (PulseTrain)
+Holdout sample – #301-375  (PulseHoldout)
+
+```{r}
+set.seed(12345) # Only set the seed to get the same results at the end, if you want actual random, then don't set seed
+# Want to do it randomly because we dont want to have a certain connection with the different rows
+rows <- sample(nrow(Pulse)) # Counts rows in pulse and takes 374 values without repleacement in a random order
+Pulse_shuffled = Pulse[rows,] # reassign pulse in a different order here 
+
+PulseTrain=Pulse_shuffled[1:300,] # Make the training data, took about 75% of the data into the training      
+PulseHoldout=Pulse_shuffled[301:375,] # Holdout    
+```
+
+What is the best model to predict Active pulse?
+
+```{r}
+#"best" model
+# Ran a model selection sequence, we don't really care how we got this for the thing for this example
+PulseTrainMod=lm(Active~Rest+Sex+Hgt+Wgt,data=PulseTrain)
+
+summary(PulseTrainMod)
+plot(PulseTrainMod) # WE dont want to touch the holdout sample, not until the end 
+# Looking at the model 
+# SUmmary 
+# ANOVA test gives us evident that some of the things are nonzero 
+# Height isn't good on its own - probably multicollinearity going on here 
+# Things correlated with height and all that 
+
+# Model conditions 
+# Some curve that could be an ainssue, we could flatten it out with transformations, but we wont mess with that now 
+# WE could have issues with constant variance, but we wont mess with either 
+# Normal is an issue, skew on the right side 
+```
+
+- We want to use the model made to predict the data in teh test data 
+__Fit for Training Model__
+Another way to think of R2:
+𝑅2 = square of correlation between 𝑌 and 𝑌̂
+
+- If we use this model to predict all the values in the new data set, we can find the cross validation correlation 
+- how well correlated the actual values are predicted vs how re predict they are with the model constructed from the old data 
+- WE're coming the R2 for the other models with the new model 
+
+__How does the training model work for the holdout sample? __
+- Compute predicted values for the holdout sample using the fitted prediction equation from the training.
+-- fitActive=predict(mod,newdata=PulseHoldout)
+-  Compute the residuals for the holdout sample.
+-- holdoutresid=PulseHoldout$Active - fitActive
+
+We want to see how far off we are from teh testing data to the holdout sample 
+```{r}
+#predict active heart rates for data in the holdout sample with the model made from the training data
+fitActive=predict(PulseTrainMod,newdata=PulseHoldout)
+# Just all teh predctions 
+
+#Actual active heart rates in holdout sample minus their predicted values
+# how far off are we? 
+holdoutresid=PulseHoldout$Active - fitActive
+# Looks at the residuals; so the actual - the predicted 
+
+# WE saw the linear was not prefect in teh past; does this model predict data in a simialr way 
+# Is there as imilar center, and spread and the Residual SE the same? 
+# IS it distributed nmuch the same way? 
+# IS there the same type of skew in this or is it different? 
+#So welook at the center, spread and shape below 
+
+#Center, spread, and shape for the distribution of holdouts
+mean(holdoutresid)# Want value to be close to zero; because if its above or below it, there are bias in teh predicitons 
+# Big or little is subjective to teh data; this is saying we are off 1 beat per minute, if we are predicting GPA, then 1 point would be really bad and off, but this isn't too bad  
+sd(holdoutresid)
+# See how spread out htings are 
+# THis says 12.21 doesn't say much on it's own 
+# Is the similar spread as the orignal dat? 
+# So look at teh orinigal training mod summary, and that is the REsd SE, and we want to see if the REsd SE is similar to teh spread of the SE of the holdout residusla 
+# One is 12 and one is 14, so the dat appears more compact, we odnt knwo why, but its okay 
+# IT doesn't llook drastically different 
+# THis is saything that htere is some difference, but it looks okay 
+
+# Distribution plots 
+qqnorm(holdoutresid)
+qqline(holdoutresid)
+# Above we see that the line looks okay, 
+# It's not great, there are tail issues with skew, but its liek the orignial data, so there doesnt look to be mcuh difference in teh shape 
+# This tells you should probably fix it in the oringial model 
+# Check it with residuals to make sure no drastic differences between teh other predicitons in teh orinal model 
+#Want th shape to be similar to the orinigal model 
+```
+
+
+```{r}
+cor(PulseHoldout$Active,fitActive)
+# Correlation bt holdout and the predictions for the values 
+# This tells you there is a 0.64 correlation bt the two values 
+# THis means that 
+# Compare teh value from a previous model 
+# THis is the cross validation ocorreation 
+#Look below 
+```
+
+
+```{r}
+#Correlation between predicted and actual active heart rates
+crosscorr=cor(PulseHoldout$Active,fitActive)
+# In previous model the multi r squared did the same thing; it was jsut the square of teh predicted adn actual values 
+crosscorr^2
+# Looking at the difference bt crosscorr^2 and what the oringial model says tells you the shrinkage from the orinigal and the test 
+# Want to see how different the predicitons with teh model correlatioe with teh actual and predicted values 
+# How well teh actual and predicted values correalte even though this model wasn't use to build the model 
+# WE want these to be similar and very close values 
+
+#Change in r^2 from the training to the holdout
+shrinkage = summary(PulseTrainMod)$r.squared-crosscorr^2
+shrinkage
+# Very clsoe to zero, less than 1 percentage
+# Gives a some measure how not as well the oringal model predcits teh new data 
+# IF teh thing is big, then you're not predicitng very well for the new data vs the old data 
+# If it is big you're probably overfitting the original model 
+# You are really only get a value from 0 - 1, under 0.15 is pretty okay, but above 0.2 can be kinda bad 
+# YOu could get a negative, which would tell you that you are predicting your stuff better than thte oringial model 
+```

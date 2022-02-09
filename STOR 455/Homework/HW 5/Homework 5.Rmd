@@ -1,0 +1,112 @@
+---
+title: 'STOR 455 Homework #5'
+subtitle: 40 points - Due 10/20 at 5:00pm
+geometry: margin = 2.25cm
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+__Directions:__ For parts 6 and 9 you may work together, but they should be __submitted individually__ by each group member. For parts 7 and 8, you should have only __one submission per group__. There will be separate places on Gradescope to submit the individual vs group work. 
+
+__Situation:__ Can we predict the selling price of a house in Ames, Iowa based on recorded features of the house? That is your task for this assignment. Each team will get a dataset with information on forty potential predictors and the selling price (in $1,000’s) for a sample of homes. The data sets for your group are AmesTrain??.csv and AmesTest??.csv (where ?? corresponds to your group number) A separate file identifies the variables in the Ames Housing data and explains some of the coding.
+
+```{r}
+library(readr)
+library(corrplot)
+library(leaps)
+library(car)
+```
+
+#### Part 6. Cross-validation: ####
+In some situations, a model might fit the peculiarities of a specific sample of data well, but not reflect structure that is really present in the population. A good test for how your model might work on "real" house prices can be simulated by seeing how well your fitted model does at predicting prices that were NOT in your original sample. This is why we reserved an additional 200 cases as a holdout sample in AmesTest??.csv. Import your holdout test data and 
+
+```{r}
+setwd("C:/Users/adeve/Desktop")
+amestrain24 <- read.csv("AmesTrain24.csv")
+amestest24 <- read.csv("AmesTest24.csv")
+AmesTest5 <- read.csv("AmesTest5.csv")
+AmesTrain5 <- read.csv("AmesTrain5.csv")
+```
+* Compute the predicted Price for each of the cases in the holdout test sample, using your model resulting from the initial fit and residual analysis in parts 1 and 2 of Homework #3. This should be done with the same AmesTrain??.csv dataset that you used for homework #3, with your assignment #3 group numbe, and AmesTrain?? also using your assignment #3 group number. 
+```{r}
+allsubmod = lm(Price~Fireplaces+GarageSF+GroundSF, amestrain24)
+
+ames.test.predict <- predict(allsubmod, newdata=amestest24)
+```
+
+* Compute the residuals for the 200 holdout cases.
+```{r}
+ames.test.residual = amestest24$Price - ames.test.predict
+```
+* Compute the mean and standard deviation of these residuals. Are they close to what you expect from the training model?
+
+*From the summary of the allsubmod, we would expect a residual standard error of 46.14.  Since the ames.test.residual is 37.61 and we are talking about thousands of dollars when referring to houses, the residual is roughly close enough to what we would expect from the training model.*
+```{r}
+mean(ames.test.residual)
+sd(ames.test.residual)
+
+summary(allsubmod)
+```
+* Construct a plot of the residuals to determine if they are normally distributed. Is this plot what you expect to see considering the training model?
+*The residuals in the testing data are more spread out than in the training data. Furthermore, the right tail of the QQNorm plot on the testing data is much more prominent than the training data.  This suggests that there may be a skew that a model that is fitted to the testing data that may not be accounted for in the other data.* 
+```{r}
+plot(allsubmod)
+hist(allsubmod$residuals)
+
+plot(ames.test.residual)
+qqnorm(ames.test.residual)
+qqline(ames.test.residual)
+hist(ames.test.residual)
+```
+
+* Are any holdout cases especially poorly predicted by the training model? If so, identify by the row number(s) in the holdout data. 
+*The biggest holdout case is 94 with a residual value of positive 133.758.  Based on the cook's distance plot in the previous question, there does not appear to be any points outside of 0.5 of cook's distance, so that is good.*
+
+```{r}
+head(sort(ames.test.residual), decreasing=FALSE, 10)
+tail(sort(ames.test.residual), decreasing=TRUE, 10)
+```
+
+* Compute the correlation between the predicted values and actual prices for the holdout sample. This is known as the cross-validation correlation. We don’t expect the training model to do better at predicting values different from those that were used to build it (as reflected in the original $R^{2}$), but an effective model shouldn’t do a lot worse at predicting the holdout values. Square the cross-validation correlation to get an $R^{2}$ value and subtract it from the original $R^{2}$ of the training sample. This is known as the shrinkage. We won’t have specific rules about how little the shrinkage should be, but give an opinion on whether the shrinkage looks OK to you or too large in your situation. 
+
+*The shrinkage is 0.3279954, which is pretty bad  It could definitely be better.  If it was closer to 0, it would mean that the model is going a better job at predicting the new data compared to the original data.  We should aim for a shrinkage under 1%, and this is at least 32%, which is pretty bad.*
+
+```{r}
+crosscor = cor(amestest24$Price, ames.test.residual)
+
+summary(allsubmod)$r.squared
+crosscor^2
+
+Shrinkage = summary(allsubmod)$r.squared - crosscor^2
+Shrinkage
+```
+
+#### Part 9. Final Model ####  
+
+Again, you may choose to make some additional adjustments to your model after considering the final residual analysis. If you do so, please explain what (and why) you did and provide the summary() for your new final model.
+    
+Suppose that you are interested in a house in Ames, Iowa that has characteristics listed below and want to find a 95% prediction interval for the price of this house.     
+   
+A 2 story 9 room home, built in 1995 and remodeled in 2003 on a 17450 sq. ft. corner lot with 300 feet of road frontage. Overall quality is good (7) and condition is average (5). The quality and condition of the exterior are both good (Gd) and it has a poured concrete foundation. There is an 875 sq. foot basement that has excellent height, but is completely unfinished and has no bath facilities. Heating comes from a gas air furnace that is in excellent condition and there is central air conditioning. The house has __2147 sq. ft.__ (fixed from homework #3) of living space above ground, 1164 on the first floor and 983 on the second, with 3 bedrooms, 2 full and one half baths, and 1 fireplace. The 1 car, built-in garage has 304 sq. ft. of space and is average (TA) for both quality and construction. The only porches or decks is a 274 sq. ft. open porch in the front.
+
+*With 95% confidence we can predict based on our model that the price of the described house is between 198.21 thousand dollars and 298.9756 thousand dollars* 
+```{r}
+Mod1 = lm(formula = log(Price) ~ factor(Quality) + I(log(GroundSF)) + 
+    YearBuilt + I(log(LotArea)) + factor(Condition) + BasementFinSF + 
+    GarageCars + Porch + BasementSF + Fireplaces + KitchenQ + 
+    CentralAir + Bedroom + SecondSF + HouseStyle + HeatingQC + 
+    GarageC + LotFrontage + factor(Quality):YearBuilt + YearBuilt:factor(Condition), 
+    data = AmesTrain5)
+
+newpoint.mod1 = data.frame(Quality=7, GroundSF=2147, YearBuilt=1995, LotArea=17450, Condition=5, BasementFinSF=0, GarageCars=1, Porch=274, BasementSF=875, Fireplaces=1, KitchenQ="TA", CentralAir="Y", Bedroom=3, SecondSF=983, HouseStyle="2Story", HeatingQC="Ex", GarageC= "TA", LotFrontage=300)
+
+predict.lm(Mod1, newpoint.mod1, interval = "prediction", level = 0.95)
+
+exp(5.289327)
+
+exp(5.700362)
+```
+

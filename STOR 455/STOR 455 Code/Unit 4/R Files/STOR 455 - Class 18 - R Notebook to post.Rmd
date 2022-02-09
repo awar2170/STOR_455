@@ -1,0 +1,256 @@
+---
+title: "STOR 455 - Class 11 - R Notebook"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r message=FALSE, warning=FALSE}
+library(readr)
+library(leaps)
+
+Pulse <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/Pulse.csv")
+source("https://raw.githubusercontent.com/JA-McLean/STOR455/master/scripts/ShowSubsets.R")
+
+head(Pulse)
+```
+
+__Nested F-test__
+𝐴𝑐𝑡𝑖𝑣𝑒 =𝛽_0+𝛽1𝑅𝑒𝑠𝑡+_2 𝑆𝑒𝑥+ 3𝑅𝑒𝑠𝑡𝑆𝑒𝑥 +𝜀 
+H0: β2=β3=0
+Ha: Some βi≠0 
+
+Compare mean square for the “extra” variability to the mean square error for the full model. 
+
+anova(modelP_Reduced, modelPint)
+Analysis of Variance Table
+
+Model 1: Active ~ Rest
+Model 2: Active ~ Rest + Sex + Rest * Sex
+  Res.Df   RSS  Df   Sum of Sq       F   Pr(>F)
+1    373 75050                           
+2    371 74538   2    512.14    1.2746   0.2808
+
+__More than Two Categories__
+Example: (Active pulse)
+
+- Exercise: 
+-- 1 = Slight 
+-- 2 = Moderate 
+-- 3 = Lots 
+
+-Try a model to predict Y=Active pulse rates using X=Exercise.
+How should the coefficients be interpreted?
+
+_Predicting Active with Exercise__
+```{r}
+modelEX = lm(Active ~ Exercise, data=Pulse) # Predict active heart rate by exercise rate 
+summary(modelEX)
+
+plot(Active ~ Exercise, data=Pulse)
+abline(modelEX)
+# We are saying there is some change between exervise levels 
+# Does exercising a moderate and a lot amount have the same impact as exercising a small and mdoerate amount? 
+# We are summing that you exercising changes is constant regardless of group
+```
+
+- 105 = exercise rate of 0, but we don thave one 
+- exercise 1 = whatever the intercept is plus the slope because we are just going over on eunit and intercept is negative; r=poreict would be 105-8.37 = 89
+ prediction show the same distance bteween groups 
+We dont want to make that asusmption here 
+
+Tkae more care with things that are not binary; we need to foroce varibales to be binary 
+
+
+__Active Pulse vs. Exercise Categories__
+```{r}
+tapply(Pulse$Active, Pulse$Exercise, mean)
+# Slpit groups by exercise levels 
+# WE want to know what the average is for each thing 
+#Is the “slope” from 1 to 2 the same as from 2 to 3?
+#Note: Using Exercise as a quantitative predictor forces the “slopes” to be the same.
+
+# The oringial model is telling me that there is no change between the mean heart rates based on exercise level; this is telling me that there is a change.
+# WE dont know if it's a significant change or not yet. 
+
+#It's ordnal, the exercise levels 
+```
+_-Dummy Indicators for Multiple Categories__
+For a categorical predictor with k levels, we use k-1 dummy indicators. 
+- X1 = 1 if group #1, 0 if otherwise 
+- Xk-1 = 1 if graph is k-1, 0 if otherwise 
+
+*Below: R Trick: (To create indicator variables)*
+What happens to Group #k? 
+
+_Predicting Active Using Slight and Moderate Exercise Indicators_
+Call: 
+lm(formula = Active ~ Slight + Moderate, data = Pulse)
+
+Coefficients:
+ 		 Estimate   Std. Error   t value   Pr(>|t|)    
+ 		 (Intercept)    80.292      1.392     57.670    < 2e-16 
+ Slight        15.950      2.542      6.275   9.74e-10   
+ Moderate      10.121      1.966      5.148   4.27e-07 
+
+Multiple R-squared:  0.1144,	Adjusted R-squared:  0.1096 F-statistic: 24.02 on 2 and 372 DF,  p-value: 1.541e-10
+
+```{r}
+Pulse$Moderate=(Pulse$Exercise==2)*1 # Be careful! this is 2!
+# This says that if it is 2, it will be true
+Pulse$Slight=(Pulse$Exercise==1)*1
+# this says if it is 1, then it will be true
+
+# Multiplying it by 1 will treat the trues and falses as 1 and 0 
+# We only need to do this for all but 1, because if all false, then it's whwatever is left over
+
+modelEX2 = lm(Active ~ Slight + Moderate, data = Pulse)
+summary(modelEX2)
+#small pvalue; so we do have some evi that at least one of the coef are not zero 
+# other predictors look good 
+# The rsquared, only 11% is explained, so it's not that its not explaining, buyt alone it's probably not best by itself 
+
+# Look at thow th emodel is set up, we dont see exercise a lot 
+# The intercept = those who exercise a lot 
+# For those who exercise a lot, we predict their active heart rate is 80.29
+# IF you look a th em eanthe mean value = the same active heart rate 
+# People who exercise a slight aount; then slight would be 1 and moderate would be zero ; then we would get intercept of 96 for slight 
+# Doing it this way, we dont have to assume that the change is consistent among the levels of our categorical variables 
+
+# WE dont need an extra variable, and if we include it, then we will probably get NA values 
+```
+
+__Handling Categorical Predictors in R__
+- If a predictor in lm( ) has “text” values, R will automatically create indicators for all but one category.
+- Using factor( )around a quantitative predictor in lm( )creates the indicators. 
+- If you let R decide, then R will decide which one to elave out and you might not know which one it stalking about 
+- R Treats categorical varibales this way 
+- If the categories were Slight, mdoerate and high, then R would factor it right 
+- IF we want to use a numeric value as a category, then use factors
+
+```{r}
+modelEX3=lm(Active~factor(Exercise),data=Pulse)
+summary(modelEX3)
+# Looks a little differen than before, because we have a different reference category 
+# IT chose to leave out the people who exercise a slight amount 
+# Intercept = slight amount average 
+# Intercept + Eecise 2 = moderate maount 
+# 96-15 = high amount 
+
+# No reason we can't include more, so look below for more inclusions 
+```
+
+__Multiple Categories in Regression__
+- With indicator variables for categories we can include quantitative and categorical predictors in the same model
+```{r}
+modelEX4=lm(Active~Rest+factor(Exercise),data=Pulse)
+summary(modelEX4)
+# We looked at the lines f coef table for exericse; maybe not useful due to pvalue 
+# Need to do to nested test value because if one is small pvalue adn the other is big we dont want to use one level fothe categorical varible we want one or all 
+# Unless we look at if exercise a lot has effect on heart rate; we just want to know if you exercise a lot or you dont; then just look at one category 
+# IN general we wnast ot keep all of the categories 
+
+# Could do a nested test to see if exercise is s auseful predictor in the  odel 
+mod = lm(Active~Rest, data=Pulse)
+anova(mod, modelEX4)
+# Careful here not comparing two predictors to one; its compare with 3 to 1 
+# Cator excerise will give 3 var because it has 3 levels 
+# Test will do is do a test is the coef of exercise factor 2 = to 0 and the coef of exercise factor 3 = 0 vs the alternative that at least one of them is nonzero?
+# We get a big pvalue; we dont have evidence that adding the exercise terms are improving the model 
+# They are not a sig improvement 
+
+# We then run into the same issue with binary cate variables that there is some relation between teh resting and active heart rate, but does that change for those who exercise a slight moderate and a lot? 
+# Maybe the resting is not so different, but the active heart rates might be differnt? 
+
+# THis model is assuming there is a same splot and same realtionship bt active and rest for all exercise levels 
+# We are just changing the intercept 
+```
+
+__Multiple Categories in Regression with Interactions__
+- With indicator variables for categories we can include quantitative, categorical, and interaction predictors in the same model
+```{r}
+modelEX4int=lm(Active~Rest+factor(Exercise)+Rest*factor(Exercise),data=Pulse)
+# Adds the interaction term 
+# THis will add ac ouple of terms in here, but ti will tell you if the itneraction ebtween things is sig or not 
+
+summary(modelEX4int)
+anova(lm(Active~Rest, data=Pulse), modelEX4int)
+
+# A line can show the differnce btw active and resting heart rate 
+# Exercise elvel 1 which is the level not including this model, we have an intercept of -7.58 and a slope of 1.38 - that st he realtionship 
+# For exercise level two , there would be 2 adj to the mopdel; the intercept is going to be the value for our intercept +28, because the intercept is going to change a bit and our resting relationship is going to be the 1.38 slope - .37
+# These are our adjustments 
+# Looks like a drastic change 
+# factor exercise 3, people who exercise a lto - the intercept will change by this amount and the slope will change by the .22; these are pretty differen tlines 
+# If we plotted them we would see there is a big difference 
+# We could do some tests to see if they are sid dif.
+```
+
+__Model Selection with Categorical and Interaction Predictors__
+- Use each of the four model selection methods discussed in class (AllSubsets, Backwards, Forwards, and Stepwise) and compare the processes and outcomes for the predictor pool:
+Rest, Exercise, Hgt, Wgt, Rest & Exercise, Hgt & Exercise, and Wgt & Exercise
+- They dont all treat them in teh same way 
+
+__All subsets__ 
+```{r}
+library(leaps)
+all = regsubsets(Active~ 
+                   Rest+
+                 factor(Exercise)+
+                   Rest*factor(Exercise)+
+                   Hgt*factor(Exercise)+
+                   Wgt*factor(Exercise), 
+                 data = Pulse, nvmax = 11)
+
+ShowSubsets(all)
+# Scroll, over to see where the lowest mallow cp is 
+
+ShowSubsets(all)[5,] # Best mallow Cp 
+# This is not idea because it isnt taking all levels of the varibaile; it might include an interaction term, but i t might not include the indivudal values; which is bad 
+```
+```{r}
+Full = lm(Active~Rest+Hgt+Wgt+Wgt*factor(Exercise)+Rest*factor(Exercise)+ Hgt*factor(Exercise), data = Pulse)
+# Fullmodel with all predictors we want 
+
+none = lm(Active~1, data = Pulse)
+# Model with non 
+
+MSE = (summary(Full)$sigma)^2
+# Pull out MSE
+
+# Sets up the process
+```
+
+__Backwards Selection__
+```{r}
+step(Full, sclae=MSE)
+# Not saying we could take out hgiehg, says we would haev to remove the interaction term as well 
+# Removing weight is possible because th te interaction is gone 
+# Takes itno account the restrictions for the model 
+```
+__forward Method__
+```{r}
+step(none, scope=list(upper = Full), sclae = MSE, direction = "forward")
+# starts with none, puts in rest, adn doesnt igve option to add interactions
+# Can only add interaciton if the two thigns were in it 
+# Tells you to use just rest 
+```
+__Stepwise__
+```{r}
+step(none, scope = list(upper=Full), scale=MSE)
+# Tells you about the same thing, with only rest 
+# Stepwise and forward are very different based on what they do 
+
+# Backwards eleminiation goes backwards, least compuational, but you might have a bigger model thatn you need 
+# Forward start with nothign and risk a too small method 
+# Stepwise is noramlly between, but in this case it was like forward 
+
+# We like thes other methods becuase they treat the intearciton terms differently.
+
+#I would say if there are a lot of interaction terms, then you should probably use backwards selection 
+```
+
+
+
+

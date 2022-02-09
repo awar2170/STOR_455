@@ -1,0 +1,73 @@
+---
+title: "Group 2 Questions"
+output:
+  word_document: default
+  html_notebook: default
+  pdf_document: default
+---
+
+```{r}
+library(readr)
+sleep = read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/SleepStudy.csv")
+```
+
+1) Start by building a model that predicts GPA based on the number of classes a student has missed, ClassesMissed
+```{r}
+mod = lm(GPA~ClassesMissed, data = sleep)
+```
+
+2) Find and display the top 10 standardized residuals (be sure to look at absolute values when sorting). Of these, which data points may be considered influential?
+
+Any values greater than 2 / less than -2 are considered to be influential. In our case, the top 9 data points have high standardized residuals.
+```{r}
+head(sort(abs(rstandard(mod)), decreasing = TRUE), 10)
+```
+
+3) Find and display the top 10 studentized residuals (be sure to look at absolute values when sorting). Of these, which data points may be considered influential?
+
+Values we consider to be high: Any values greater than 2 / less than -2 
+In our case, all of the top 10 data points have high standardized residuals.
+```{r}
+head(sort(abs(rstudent(mod)), decreasing = TRUE), 10)
+```
+
+4) Based on only the information from the previous two questions, do we have any indications about data points that may exert significant influence on the model?
+
+For question 4, I think the answer should be we have no evidence that the data points may have significant influence because standardized residuals and studentized residuals only tell us how far away each point deviates from the mean, they don't tell us how influential each point is.
+
+5) Briefly explain the difference between influence and leverage.
+
+Influence is the effect of a single data point on the regression line, and represents how well the data point matches the of the rest of the points. 
+Leverage represents how much influence a data point has on the regression line. It explains how far away the data point is from the other points (explains how much of an outlier it is)
+
+For question 5, a better explanation of leverage is the "potential" to exert influence.
+
+6) Briefly explain the difference between standardized and studentized residuals.
+
+Standardized: Residuals of the data are standardized 
+If a rstandard value is greater than 2 (or less than -2) it is a mild outlier. If the value is greater than 3 (or less than -3), it is a strong case of being an outlier. 
+Studentized: An outlier is removed from the data, then standardized. 
+
+For question 6, the studentized residual is calculated by removing the data point whose studentized value you want to calculate, not removing an outlier.
+
+7) Find and display the top 10 points with highest leverage. Do any points have significantly large leverage?
+
+None of these data points appear to have high leverage. 
+```{r}
+2/12 # Average leverage (2/n)
+
+2 * 2/12 # Points we might need to worry about
+3 * 2/12 # Points we might need to worry about
+
+head(sort(hatvalues(mod), decreasing=TRUE), 10)
+```
+
+8) Calculate the Cook's Distance for the points in our data set. How many of these points may be considered influential outliers?
+
+From class, we said to study any case with Di > 0.5; worry if Di > 1.0. In our data set, none of the cook's distances exceed 0.5, so we have 0 influential outliers in our dataset.
+
+```{r}
+head(sort(cooks.distance(mod), decreasing=TRUE),10)
+```
+
+

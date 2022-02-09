@@ -1,0 +1,32 @@
+---
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+```{r}
+library(readr)
+data=read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/SleepStudy.csv")
+```
+a) Construct an ANOVA model for the mean AverageSleep value using LarkOwl and DepressionStatus as factors along with the interaction term and show the summary output. Is there evidence for a significant difference in mean AverageSleep values for any of the predictors?
+```{r}
+amod1= aov(GPA~factor(ClassYear)+DepressionStatus+factor(ClassYear)*DepressionStatus,data=data)
+summary(amod1)
+```
+There is evidence for a significant difference in the mean AverageSleep value between class years but not for depression status or the interaction term.
+
+b) Perform pairwise comparisons using Tukey HSD methods to show where any significant differences may occur among factors that showed a significant difference in part a).
+```{r}
+hsd = TukeyHSD(amod1)
+hsd$`factor(ClassYear)`[,4][hsd$`factor(ClassYear)`[,4]<.05] #significant differences in means between class groups
+```
+There appear to be significant differences in mean AverageSleep values between class years 1:2, 1:3, and 1:4.
+
+c) Produce 95% family-wise confidence level plots for the ANOVA model created in part a). 
+```{r}
+hsd=TukeyHSD(amod1)
+ plot(hsd,las=2)    
+```
+
+
+

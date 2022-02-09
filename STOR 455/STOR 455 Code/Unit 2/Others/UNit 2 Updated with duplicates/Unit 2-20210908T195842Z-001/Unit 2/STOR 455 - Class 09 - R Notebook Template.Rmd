@@ -1,0 +1,198 @@
+---
+title: "STOR 455 Class 9 R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r warning=FALSE, message=FALSE}
+library(readr)
+library(Stat2Data)
+
+DistanceHome <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/DistanceHome.csv")
+
+Domestic = subset(DistanceHome, Distance<250)
+```
+
+Announcemnet: Quiz on Friday, we are going to do a few things on class; we will acess it on sakai, and we'll get an R notebook like we have done on so far, then submit it on gradescope 
+- People will have different submissions; so make sure you submit yours on the right spot, we'll talk about it next class 
+- make sure you clear your global environment before doing the test 
+
+```{r}
+# build the same model as we have used other times 
+plot(Distance~Hours, Domestic)
+moddist = lm(Distance~Hours, Domestic)
+abline(moddist)
+
+summary(moddist)
+# FOr every extra hour, we are about 60 extra miles away from home 
+```
+We are donig a hypothesis test here above; it will compare the linear model vs the other model 
+
+t-test for slope 
+So we are doing Y = slopt + error vs Y = slopt + b1x+ error; 
+
+wer are trying to find pvalue using a t dist and a n-2 degree of freedom 
+if the p value is small, then reject the Ho
+
+The test stat = slope/standarad erro = how many std errors are we from teh ceter how unlikely is it that we get tha thing that we did 
+
+THis is what we find under summary(moddist)
+the last value is the pvalue = 2.22e-16; it's the smalest p is going to be here; so we want to reject the H0 
+
+#StatKey#
+Get teh domestic csv file 
+test for slope, correlation; upload the csv file to the sttakey website 
+https://www.lock5stat.com/StatKey/randomization_2_quant/randomization_2_quant.html
+
+Make a slope; of what we would think of the 
+take all the distance values and then randomly assign it tot he hours; if they have no association, so then it should be fine and we should all eventually get to a slope by chance; if the actual popualtion was zero 
+### THe ABOVE IS TESTIN GWHAT THE NULL HYPOTHESIS WOULD BE #### 
+
+IF you click the two tail utton, then it will show you where teh 95% values are; if you're orinial sample slope = 59.8, and ou put that in, then the website will show bigger or +/- 59.8; none of the simulations were close to that; so this shows that the 0s are the pvalues; it's not what R is really doing; but it's building the dist with a t dist; 
+R is using the spread of teh smaple and buildinga curve over the sample 
+
+## Go back to statkey, and go to t dist under theorethical distiburtion##
+Our df = 54- 2 = 52 
+THe numebr at the botoom = how many standarde rrors the slopes are away so we have to put teh slope/std error in there; where hic 24 in our model
+This is the left of the pvalue; 
+
+## Powerpoint ## 
+IF there were no relation, it would be really low that we get this numbers 
+
+## Tests for finding correlation in R ## 
+There are 3 ways, and with a simple linear modeul, we will get the same result, but if we had other types of test, it would be different 
+
+```{r}
+# Test 1: Correlation bt two values 
+cor(Domestic$Distance, Domestic$Hours)
+# FOr LInear models it matters teh order, but for cor it doesn't matter the order 
+```
+
+
+
+THis shows that we have a high correlation; so as one gets bigger the other value goes up; the closer the vlaues is to 1, then it is closer to a strong linear relationship; it's probably tightly packed 
+
+```{r}
+# Another stat2data set 
+data(Houses)
+head(Houses)
+# THis is small, but it highlights something we need to keep in mind 
+# Makes sense that tehse are all highligy correlatied; the bigger house andland then teh mosre expensive your place is going to be 
+
+cor(Houses)
+# Can also put whole dataframes in teh core function 
+```
+
+Teh above gives a cor matrix and the comined correlation for different variables; price by price, you're going to get 1 because its teh same thing; price and size and size and price are going to haev teh same thing; we can see tehre are a high mod pos correlation 
+
+```{r}
+# This doesn't always work 
+data(Cereal)
+cor(Cereal)
+head(Cereal)
+```
+
+The above is error because the name of cereal can't be correlated ebcause they are names; you cant correlate names 
+HOw to limit R to to do certian things 
+
+```{r}
+cor(Cereal[c(2,3,4)])
+cor(Cereal[2:4])
+cor(Cereal[-1]) # Tell R what you dont want
+#Dont want a lot of columsn? 
+cor(Cereal[-c(1)])
+```
+
+**Test for a linear realtions via correlation**
+Let p(rho) denote the population correlation; 
+```{r}
+cor.test(Domestic$Distance, Domestic$Hours)# This does something line summary, if there are 0 cor, then how likely we would get a samp with that result 
+```
+
+HOw to read above; 
+The confidence interval = in the population
+t= 24.... = how many std err we are from the null; which si teh same value as we had with the test for the slope because it is linear; 
+pvale = small, so there is a really low chance wthat we woudl get this result by changce 
+
+IN multiple regression they are not going to be the same ebcause there are amult factors to care about 
+
+**Other way to tesst corerlation** 
+THis is the most useful 
+WHen we add mutliple predictors 
+**ANOVA* 
+Data = Model + Error 
+TOtal varation in response, Y = Varation explained by MOdel + Unexplained varation in REsiduals 
+Key Question Dpes teh MODEL explain a "sig" amount of the TOTAL variabilti? 
+
+# First thing to look at 
+The total variation in resnt; how far away is each dot from teh y-bar? (the mean) 
+#THen look at the varation explained by the model 
+Then look at how the line explains things 
+# Then look at how the distance in from teh line from each poin t
+
+**Partitingin varaibility - SLM* 
+y = B0+B1X + E
+(Y-Yhat) = (Y-hat - ybar) + (y-yhat) 
+sum(Y-ybar)^@ = sum(yhat - ybar)^@ + sum(y-yhat)^@ # THe last is how far each point is frmo the line;
+SSTOTAL = SSMODEL = SSE
+
+Want to look at 
+SSMODEL = The model var response 
+SSE + THe error 
+SSTOTAL = Error + Model 
+
+HOw much var explained by model if the null was true that's what anova does 
+
+**ANOVA** 
+```{r}
+anova(moddist)
+```
+
+This tells us the analusis of variance table 
+the response: distance 
+It tesll us teh sum sq of the model and error terms; if you sum hours sum sq and residuals sum sq , then you will get SSTOAL 
+SUm dq - how much var is explained by the mode 
+REsiduals sum of squares = from the line 
+
+The F value  = the mean quse of 
+When f value is small  no so much variability is explained in our model 
+WHen teh fa value is big, more varaibility is explained thoruhg or model 
+# Bi and small are relative depending on how much infomraiton and data we have 
+
+**ANOVA TEST FOR REGRESSION**
+basic idea: Find two estimatores of error term 
+
+The table gives us the same null and alternative as teh slope test 
+we are asusme there are no relationship between Y and X: 
+we should use teh mean but not the other slope 
+the nonzero slope should better show the model - not sure what this words are 
+
+Look at it on statskey to see what theh F dist look on the 
+More adv random test, then ANOVA for regression 
+HOurs = X, Distance = Y 
+
+# THe ANOVA Table is weird## 
+THE sum of sqaers or regression is namll because teh model doesn't make up for a lot of variation 
+so we get the mean squers regression and stuff; if we have an f test of 1
+if there are no relationship in the population, we would want an f test of = 
+This bell curvev looks at different; he is useing teh domestic data 
+
+click on right tail and put in the 582.98 = then you will see that the datat is super condensed to the left; - the 582 was our oringial f value 
+
+#R and R^2# 
+the nultiple r squared vs r squared = the total variabiltiy(How far each poitn is from the mean line) than our error term is something else; the variabiltiy taht tis expalined is from the mean down to the line ; high values of r squared woudl tell me most of the var is explained by the predictors; so its a good model ish 
+multiple r qurared is teh corelation being squared; so r^2 has to be between 0 and 1; 0 = no var is explained by predictors; then 1 = most of the var is being c=explained by our model 
+if we looked at r thorugh our thing; then r^2 can have us look at it from the lends of many predictors 
+we have tehse tree test 
+##**LOOK AT THE POWERPOINT NOTES ONLINE**## 
+THes test for t test 
+- ANOVA 
+- Ttest for corealtion 
+
+Mutliplate reagression teh testes wil be different 
+the correlation response = the wa yit looks in a vaccume 
+the test for a slope = how well related is teh predictors and this response with teh whole model in account; not a vaccum 
+the anova test = lets us look at the bigger pricture; see how if there are any relations between ANY of our reposnse variables because tehnw e dont have to see if there are other correlations between other things (THis will help us catach type 1 errors that will help us see things tht might happen by chance)
+# If you do an unlikely chance because you did something enough times to get it, you might rejec tthe H0 when you don't really need to 
+

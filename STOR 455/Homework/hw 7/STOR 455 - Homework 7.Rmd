@@ -1,0 +1,141 @@
+---
+title: "STOR 455 Homework 7"
+subtitle: 20 points - Due Wednesday 11/3 5:00pm
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+### Are Emily and Greg More Employable Than Lakisha and Jamal? ###
+
+Bertrand, M., & Mullainathan, S. (2004). Are Emily and Greg more employable than Lakisha and Jamal? A field experiment on labor market discrimination. _American Economic Review, 94_(4), pp. 991-1013.
+
+\[Abstract\]
+We perform a field experiment to measure racial discrimination in the labor market. We respond with fictitious resumes to help-wanted ads in Boston and Chicago newspapers. To manipulate perception of race, each resume is randomly assigned either a very African American sounding name or a very White sounding name. The results show significant discrimination against African-American names: White names receive 50 percent more callbacks for interviews. We also find that race affects the benefits of a better resume. For White names, a higher quality resume elicits 30 percent more callbacks whereas for African Americans, it elicits a far smaller increase. Applicants living in better neighborhoods receive more callbacks but, interestingly, this effect does not differ by race. The amount of discrimination is uniform across occupations and industries. Federal contractors and employers who list “Equal Opportunity Employer” in their ad discriminate as much as other employers. We find little evidence that our results are driven by employers inferring something other than race, such as social class, from the names. These results suggest that racial discrimination is still a prominent feature of the labor market.    
+
+
+Variables     | Descriptions
+-----------   | -----------------------------------------------------
+_call_        | Was the applicant called back? (1 = yes; 0 = no)
+_ethnicity_   | indicating ethnicity (i.e., "Caucasian-sounding" vs. "African-American sounding" first name)
+_sex_         | indicating sex
+_quality_     | Indicating quality of resume.
+_experience_  | Number of years of work experience on the resume
+_equal_       | Is the employer EOE (equal opportunity employment)?
+
+
+Use the _ResumeNames455_ found at the address below:
+
+https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/ResumeNames455.csv
+
+1) An Equal Opportunity Employer (EOE) is an employer who agrees not to discriminate against any employee or job applicant because of race, color, religion, national origin, sex, physical or mental disability, or age. Construct a logistic model to predict if the job applicant was called back using _ethnicity_, _equal_, and the interaction between _ethnicity_ and _equal_ as the predictor variables. 
+
+
+```{r}
+resume <- read.csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/ResumeNames455.csv")
+library(Stat2Data)
+library(readr)
+library(TTR)
+library(bestglm)
+library(leaps)
+```
+
+```{r}
+employ.mod = glm(call~factor(ethnicity)+equal+factor(ethnicity)*equal, data=resume, family=binomial)
+summary(employ.mod)
+```
+2)  Conduct a drop in deviance hypothesis test to determine the effectiveness of the _equal_ terms in the model constructed in the previous question. Cite your hypotheses, p-value, and conclusion in context.
+
+Ho: Xequals = 0
+Ha: Xequals =/= 0 
+
+P-values = 0.8291
+
+Conclusion: Because we recieved a p-value of 0.8291, we do not have enough evidence to reject the null hypothesis that the coeffecient of the "equals" variable is equal to 0.
+
+```{r}
+anova(employ.mod, test = "Chisq")
+```
+
+3)  Based on your model from question 1, What is the probability of an applicant with a "Caucasian-sounding" name getting a call back from an Equal Opportunity Employer (EOE). What is the probability of an applicant with an "African-American sounding" name getting a call back from an Equal Opportunity Employer (EOE)?
+
+There is a 10.29% chance that someone with a caucasian sounding name will receive a call back from an EOE and there is a 9.38% chance that an African-American sounding name will receive a call from an EOE.
+
+```{r}
+summary(employ.mod)
+B0 <- summary(employ.mod)$coeff[1,1]
+B1 <- summary(employ.mod)$coeff[2,1]
+B2 <- summary(employ.mod)$coeff[3,1]
+B3 <- summary(employ.mod)$coeff[4,1]
+
+# Caucasian-sounding name 
+x = 1
+y = 1
+z = x*y
+# Q = exp(B0+(B1*x)+(B2*y)+(B3*z))
+# Q
+P = exp(B0+(B1*x)+(B2*y)+(B3*z))/(exp(B0+(B1*x)+(B2*y)+(B3*z))+1)
+P
+
+# African-American Sounding Name 
+a = 1
+b = 0
+c = a*b
+# O = exp(B0+(B1*a)+(B2*b)+(B3*c))
+# O
+D = exp(B0+(B1*a)+(B2*b)+(B3*c))/(exp(B0+(B1*a)+(B2*b)+(B3*c))+1)
+D
+```
+
+
+4) Does the number of years of work experience impact the relationship between ethnicity and an applicant getting called back? Construct a logistic model to predict if the job applicant was called back using _ethnicity_, _experience_, and the interaction between _ethnicity_ and _experience_ as the predictor variables. 
+```{r}
+employ.mod.q4 = glm(call~factor(ethnicity)+experience+factor(ethnicity)*experience, data=resume, family=binomial)
+summary(employ.mod.q4)
+```
+
+5)  Conduct a drop in deviance hypothesis test to determine the effectiveness of the _experience_ term in the model constructed in the previous question. Cite your hypotheses, p-value, and conclusion in context.
+
+Ho: Xexperiences = 0
+Ha: Xexperiences =/= 0 
+
+P-values = 0.8291
+
+Conclusion: Because we recieved a p-value of 4.406e-05, we have enough evidence to reject the null hypothesis that the coeffecient of the "experiences" variable is equal to 0.
+
+```{r}
+anova(employ.mod.q4, test = "Chisq")
+```
+
+
+6)  Construct a plot with _experience_ on the horizontal axis and _call_ on the vertical axis. Add to this plot two curves, made from the model constructed in question 4. For an applicant with a "Caucasian-sounding" name, plot a red logistic curve showing the probability of getting a call back based on experience. For an applicant with an "African-American sounding" name, plot a blue logistic curve showing the probability of getting a call back based on experience. Comment on the similarities or differences between the two models.
+
+Based on the two models, it appears that caucasian sounding names have a higher rate of call back.  Overall, as experience increases, the chance of recieving a call back also appears to increase. 
+```{r}
+plot(call~experience, resume)
+#Caucasian  
+curve(exp(B0+(B1*x)+(B2*x)+(B3*x))/(exp(B0+(B1*x)+(B2*x)+(B3*x))+1), col = "red", add = TRUE)
+# African American
+curve(exp(B0+(B1*x))/(exp(B0+(B1*x))+1), col = "blue", add = TRUE)
+```
+7)  Use an appropriate model selection method to construct a best model to predict if the job applicant was called back using any of the other variables as predictors (except for _name_). You may also use interaction terms. Why would you not want to use _name_ as a predictor?
+
+You don't want to use name as a predictor because you can't logically level the names of the people in the dataset.  Furthermore, it doesn't make sense to want to use name as a predictor because the rate of something happening to someone with a specific name isn't very useful to know.  Based on the best models output, the one with the lowest criteria says to include ethnicity and experience. 
+```{r}
+resume <- read.csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/ResumeNames455.csv", stringsAsFactors = TRUE)
+resume.2 = within(resume, {name = NULL}) 
+head(resume.2)
+resume.2 <- resume.2[,c(1:3,5:6,4)]
+head(resume.2)
+
+resume.2.bestglm <- bestglm(resume.2, family=binomial)
+resume.2.bestglm$BestModels
+```
+```{r}
+employ.mod.2 = glm(call~factor(ethnicity)+experience+factor(ethnicity)*experience, data=resume.2, family=binomial)
+summary(employ.mod.2)
+```
+
+

@@ -1,0 +1,48 @@
+---
+title: "Stor455-Hw9"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r}
+library(readr)
+library(Stat2Data)
+```
+
+```{r}
+data("Election16")
+head(Election16)
+```
+1. Run a logistic regression model to predict _TrumpWin_ for each state using the per capita _Income_ of the state. Print a summary of the model. 
+
+2. Find a 95% confidence interval for the odds ratio using the model constructed in question 1. (Explain if you wanna)
+
+\newpage
+
+
+
+
+
+Answers
+
+1. Run a logistic regression model to predict _TrumpWin_ for each state using the per capita _Income_ of the state. Print a summary of the model. 
+
+```{r}
+Election_logitmod = glm(TrumpWin~Income, 
+                        data = Election16, family = binomial)
+summary(Election_logitmod)
+```
+
+
+2. Find a 95% confidence interval for the odds ratio using the model constructed in question 1. (Explain if you wanna)
+
+```{r}
+exp(confint.default(Election_logitmod))
+```
+We are 95% confident that for every increase of one dollar, the person's odds that Trump Wins changes by a factor between 0.999694 and 9.999127e-01. 
+
+
+
+
+

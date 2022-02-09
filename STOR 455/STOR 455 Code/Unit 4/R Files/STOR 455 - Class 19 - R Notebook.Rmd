@@ -1,0 +1,210 @@
+---
+title: "STOR 455 - Class 19 - R Notebook"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r message=FALSE, warning=FALSE}
+library(readr)
+library(leaps)
+
+Pulse <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/Pulse.csv")
+StateSAT <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/StateSAT.csv")
+
+source("https://raw.githubusercontent.com/JA-McLean/STOR455/master/scripts/ShowSubsets.R")
+source("https://raw.githubusercontent.com/JA-McLean/STOR455/master/scripts/anova455.R")
+```
+ 
+*Is there a sig dif bt a model with these extra predictors compared to something smaller? 
+__Comparing Two Regression Lines (with a multiple regression)__
+- dhould reg be considered the same? 
+- The interaction terms - can interact slope and intercept depending on values 
+
+__Multiple regression model__
+- We had anova, but is there someone inbetween? 
+- That's th enested test! 
+- Instead of comparing to  anull, we compare to a subset of the model - and that subset is the base point 
+- ANOVA looks at how much more is explained to a horizontal line 
+- NOw a nested test is comparing the model to a different model 
+
+ __Nested Models__
+ - Definition: If all of the predictors in Model A are also in a bigger Model B, we say that Model A is nested in Model B.
+- Example:  𝐴𝑐𝑡𝑖𝑣𝑒=𝛽_0+𝛽_1 𝑅𝑒𝑠𝑡+ 𝜀   is nested in 
+- 𝐴𝑐𝑡𝑖𝑣𝑒=𝛽_0+𝛽_1 𝑅𝑒𝑠𝑡+_2 𝑆𝑒𝑥+_3 𝑅𝑒𝑠𝑡∗𝑆𝑒𝑥+𝜀 
+- Test for Nested Models: 
+- Do we really need the extra terms in Model B?
+- i.e. How much do they “add” to Model A? 
+
+__Nested F-test__
+- Want to see how much variability is explained by adding these new values 
+Basic idea: 
+1. Find how much “extra” variability is explained when the “new” terms being tested are added. 
+2. Divide by the number of new terms to get a mean square for the new part of the model. 
+3. Divide this mean square by the MSE for the “full” model to get an F-statistic. 
+4. Compare to an F-distribution to find a p-value.
+
+__Nested F-test__
+Test:  Ho: Bi=0 for a “subset” of predictors
+          Ha:  Bi != 0  for some predictors in the subset
+- F = ((SSModelFull - SSModelReduced)/# Predictors)/MSEFull 
+- F = ((Explained by Full model - Explained by reduced model)/predictors tested in Ho)/ based on full model - Compared to a f distribution 
+
+__Nested F-test__
+𝐴𝑐𝑡𝑖𝑣𝑒 =𝛽_0+𝛽1𝑅𝑒𝑠𝑡+B_2 𝑆𝑒𝑥+ B3𝑅𝑒𝑠𝑡𝑆𝑒𝑥 +𝜀 
+H0: β2=β3=0
+Ha: Some βi≠0 
+-Compare mean square for the “extra” variability to the mean square error for the full model. 
+ 
+__Nested F-test Code Example__ 
+```{r}
+modelPint=lm(Active~Rest+Sex+Rest*Sex, data=Pulse) # Total model; 
+# Predict active heart rate by resting rate, sex and the interaction bt rest and sex 
+# including the interaction term makes sure that we don't assume that rest and sex have the same slope and intercept 
+summary(modelPint)
+
+# If we want to test to see if adding sex to see if the slope adn itnercept are different, we want to comapre to one without sex and the interaction 
+modelP_Reduced = lm(Active~Rest, data=Pulse)
+
+# This compares the two models to tell us if the interaction and sex term are significant in our model 
+anova(modelP_Reduced, modelPint)
+# How much extra variability is expalined? Its the difference int eh sum of squares; if that's a big differene, a higher SSqures is better? Yes 
+```
+
+```{r}
+# This tells us, individually, if the predictors are significant in our model
+anova455(modelPint)
+anova455(modelP_Reduced)
+# The resting term has a sig relationship 
+# The itneraciton model, its at 50854 and the other model is 50342
+# Subbing these gives us the additional variability exampled;
+
+# That's SSDif that is below 
+```
+
+```{r}
+SS_diff = anova455(modelPint)[1,2] - anova455(modelP_Reduced)[1,2]
+SS_diff # The additional variability explained 
+# that's where the 512 is coming from in teh table above, the difference in teh sum of squares
+
+MS_diff = SS_diff/(anova455(modelPint)[1,1] - anova455(modelP_Reduced)[1,1])
+MS_diff # Means squared difference
+# Divide SS_dif by the difference in predictors of the model 
+# WE want to see what the differences are in teh df 
+# 3 - 1 = 2 
+
+F_diff = MS_diff/anova455(modelPint)[2,3]
+F_diff # The F value difference 
+
+library(sjPlot)
+
+dist_f(f = F_diff, 
+       deg.f1 = anova455(modelPint)[1,1] - anova455(modelP_Reduced)[1,1], 
+       deg.f2 = anova455(modelPint)[2,2],
+       )
+
+# The area under the curve is a pvalue 
+# Plots teh f distribution to see graphically how extreme it is 
+# We need to tell it the difference of the predictors and the df of the error term (that's what the deg.f1 and f2 are)
+# This graph will vary depending onthe degrees of freedom 
+# WE see that the 1.28 is around the p value of 0.28; 
+# we would expect ot seet his variation about 28% of the time if there was no useful ness of adding things into the model 
+# WE need an f test stat up to 3 to show sig results 
+# This tells us that its not beneficial to add these terms to our model bcuase we don't see a stat sig dif bet the two models (using sex to predcit active heart rate)
+```
+
+__Example: State SAT Scores__
+Source:    Statistical Sleuth, Case 12.1 pg. 339  
+Response Variable:     
+      SAT    =Average combined SAT Score
+Potential Predictors:  
+     Takers  = % taking the exam
+     Income = median family income ($100’s)
+     Years    = avg. years of study (SS, NS, HU)
+     Public   = % public school
+     Expend = spend per student ($100’s)
+     Rank     = median class rank of takers
+
+```{r}
+SATModel = lm(SAT~., data=StateSAT[,2:8])
+summary(SATModel)
+# IF we think about polynomial regression we can make a good model with it 
+# We have a few good predicotrs  here 
+```
+
+__R: Best Subsets for StateSAT__
+```{r}
+all = regsubsets(SAT~., data=StateSAT[,2:8])
+ShowSubsets(all)
+# Tells us the best model is 
+```
+
+```{r}
+SATModel1 = lm(SAT ~ Years + Expend + Rank, data = StateSAT)
+SATModel2 = lm(SAT ~ Years + Public + Expend + Rank, data = StateSAT)
+summary(SATModel1)
+summary(SATModel2)
+# Null: Added coefficients for the added predictors are equal to zero 
+# Alternative: At least 1 is nonzero 
+# tehre is only 1 added predictor; we are testing that public = 0 vs the alternative that it is nonzero
+```
+
+```{r}
+# Nested test on the things 
+# This tells us the same pvaule resut
+# Doing a nested test for the difference with one term in our model is the same as doing those individual tests for slope 
+##IMPORTANT ABOVE
+# The below anova is less useful with one term at a time, but it's pretty useful if judgeing multiple terms at a time 
+anova(SATModel1, SATModel2)
+```
+
+__Model Selection with Categorical and Interaction Predictors__
+Use each of the four model selection methods discussed in class (AllSubsets, Backwards, Forwards, and Stepwise) and compare the processes and outcomes for the predictor pool:
+Rest, Exercise, Hgt, Wgt, Rest & Exercise, Hgt & Exercise, and Wgt & Exercise
+
+- WE saw in teh past that the regsubsets method wasn't the best becuase it included things that weren't as useful 
+- it picked a chose levels of things when we wanted all of the levels or none of the levels; and it also liked to pick and choose certain interaction terms, some of which were not included in the model 
+- If you want to include an interaction term, you have to have both terms already in the model 
+
+```{r}
+# THis is setting things up
+Full=lm(Active~Rest+Hgt+Wgt+factor(Exercise)+Rest*factor(Exercise)+ Hgt*factor(Exercise) + Wgt*factor(Exercise), data=Pulse)
+none=lm(Active~1,data=Pulse)
+MSE=(summary(Full)$sigma)^2
+```
+
+```{r}
+#Backwards selection
+back_mod = step(Full,scale=MSE, trace=FALSE)
+back_mod
+```
+
+```{r}
+# Forward selection
+forward_mod = step(none,scope=list(upper=Full), 	scale=MSE,direction="forward", trace=FALSE)
+forward_mod
+```
+
+
+```{r}
+# Stepwise selection
+step_mod = step(none,scope=list(upper=Full),scale=MSE, trace=FALSE)
+step_mod
+```
+
+```{r}
+# Comaring the nested backwards selection model to the stepwise selection method
+# IF we look at the nested test values of these 
+# Ho: At there is no difference between the models 
+# Ha: At least one variable is non zero 
+# Do we have sig evidence that at least one of these predictors coefficient is non zero? 
+anova(back_mod, step_mod)
+# There are 6 predictors different from the two 
+# The factor exercise has 2 additional dummy variables and the interactio nhas 2 addiitonal variables 
+# is the coeff for these 6 extra terms equal to zero or evidence that non zero 
+# Small pvalue, evidence that at least 1 is non zero 
+# mallow Cps may not fit for this model, we might have a lower mallow Cp for rest, it slooks like its a sig imporvement ot add these different criteria to it 
+
+#It is an addiitonal tool to build a bigger model 
+```

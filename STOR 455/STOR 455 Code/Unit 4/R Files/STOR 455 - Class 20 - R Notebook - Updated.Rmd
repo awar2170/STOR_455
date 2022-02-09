@@ -1,0 +1,227 @@
+---
+title: "STOR 455 - Class 20 - R Notebook"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r message=FALSE, warning=FALSE}
+library(readr)
+library(leaps)
+
+StateSAT <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/StateSAT.csv")
+
+source("https://raw.githubusercontent.com/JA-McLean/STOR455/master/scripts/ShowSubsets.R")
+```
+__Example:  State SAT__
+- Model #1:  Y=SAT   vs. X=Takers
+
+```{r}
+mod = lm(SAT~Years+Expend+Rank, data=StateSAT)
+summary(mod)
+
+plot(mod)
+# We have a curve in teh residual plot 
+# The noramility is an issue 
+# The one state has a lot of influence, WE think it's AK, that has a fewer precentage of the population in public schools 
+```
+
+```{r}
+plot(SAT~., data=StateSAT[2:8])
+# Here, we see the correlation between each of the variables in the dataset (each of teh numerical variables in teh dataset) 
+# Expend is iffy 
+# Years is good
+# Takers looks like the best pattern, but we dont have it because it doesn't look lienar 
+```
+
+```{r}
+# LEts look at just the taker's variable 
+modSAT1 = lm(SAT~Takers, data=StateSAT)
+summary(modSAT1)
+plot(modSAT1)
+# Small pvlaue and high variability is described 
+# Linearity condition is super messed up though, so what can we do?  - Transofmrations! 
+```
+
+__Polynomial Regression__
+For a single predictor X:
+𝑌=𝛽_𝑜+𝛽_1 𝑋+𝛽_2 𝑋^2+⋯+𝛽_𝑝 𝑋^𝑝+𝜀
+
+- **LINEAR** 
+-- 𝑌=𝛽_𝑜+𝛽_1 𝑋+𝜀
+
+- **QUADRATIC** 
+-- 𝑌=𝛽_𝑜+𝛽_1 𝑋+𝛽_2 𝑋^2+𝜀
+
+- **CUBIC** 
+--𝑌=𝛽_𝑜+𝛽_1 𝑋+𝛽_2 𝑋^2+𝛽_3 𝑋^3+𝜀
+
+__Issues with Polynomial Regressionn__
+- We can move it up and down based on the intercept or make it widder or thinner based on the slope;
+- We can't change where the vertex is
+
+```{r}
+#What if we raise taker's the the 2nd power? 
+# We have to insolute it so R will actually do it 
+# THis made it worse, so to shift it to the right, we have to use a quadratic regression line  
+modSAT2 = lm(SAT~I(Takers^2), data=StateSAT)
+summary(modSAT2)
+plot(modSAT2)
+```
+
+__Polynomial Regression in R__
+- We can add as many powers we want but then we might be over fitting, so that's not always best
+
+Method #1: Create new variables with predictor powers.
+- Create a new model of takers^2
+- Use to shift to the right or left
+```{r}
+StateSAT$TakersSq = StateSAT$Takers^2
+# ameks a new column of takers^2
+
+modSATquad1 = lm(SAT~Takers + TakersSq, data=StateSAT)
+summary(modSATquad1)
+# Above, makes a model with takers^2
+# We see that it's a pretty sig model 
+# It looks good, but does it help with the residuals? 
+
+plot(modSATquad1)
+# The linearity looks pretty good 
+# Constance variance could be better because we dont have a lot of data 
+# the normal, looks pretty good too 
+```
+
+__Polynomial Regression in R__
+Method #2:  Use I( )in the lm( )
+- Does the same thing as a bove, but it does it with just the insulate function
+```{r}
+# Quadratic model for SAT
+# (𝑆𝐴𝑇)̂=1053.1−7.1616𝑇𝑎𝑘𝑒𝑟𝑠+0.0710〖𝑇𝑎𝑘𝑒𝑟𝑠〗^2
+modSATquad2 = lm(SAT~ Takers+ I(Takers^2), data=StateSAT)
+summary(modSATquad2)
+```
+
+__Polynomial Regression in R__
+Method #3:  Use poly
+- Does the same thing as the other methods, but it just tells it to make a polynomial
+- This will be treated as one unit instead of separately 
+```{r}
+modSATquad3 = lm(SAT~poly(Takers, degree=2, raw=TRUE), data=StateSAT) # 2 = quadratic 
+summary(modSATquad3)
+# Same values 
+```
+
+```{r}
+#ANOVA TREATS THE DIFFERENT METHODS DIFFERENTLY
+anova(modSATquad1)
+# Looks at takers vs takers^2
+# tells you adding the squared term is useful for us 
+anova(modSATquad3)
+# Condesnes the terms into one 
+# Jsut a test on the one model
+
+# Doing the same things, but the function treats it differently depending on the method you use 
+```
+
+```{r}
+# Quadratic model for SAT
+plot(SAT~Takers, data=StateSAT) # Plot raw data
+
+# Pull out teh coeff for the terms for the quadratic model 
+B0_modSATquad2 = summary(modSATquad2)$coef[1,1]
+B1_modSATquad2 = summary(modSATquad2)$coef[2,1]
+B2_modSATquad2 = summary(modSATquad2)$coef[3,1]
+
+# curve(INtercept, coef*x, coef*x^2, add = TRUE)
+curve(B0_modSATquad2 + B1_modSATquad2*x + B2_modSATquad2*x^2, add=TRUE)
+# Looks like it fits really well 
+```
+Would a Cubic work better? 
+```{r}
+#Cubic MOdel
+modSATcubic = lm(SAT~ Takers+ I(Takers^2) + I(Takers^3), data=StateSAT)
+summary(modSATcubic)
+# R and rsqaured are simular 
+# Models of dif predictors, adj r squared is better measure 
+# Its a little worse than a 2 model 
+# High p value 
+# tells us that not as sig 
+```
+
+```{r}
+# Cubic MOdel
+plot(SAT~Takers, data=StateSAT, main="Cubic Model")
+
+B0_modSATcubic = summary(modSATcubic)$coef[1,1]
+B1_modSATcubic = summary(modSATcubic)$coef[2,1]
+B2_modSATcubic = summary(modSATcubic)$coef[3,1]
+B3_modSATcubic = summary(modSATcubic)$coef[4,1]
+
+curve(B0_modSATcubic + B1_modSATcubic*x + B2_modSATcubic*x^2 + B3_modSATcubic*x^3, add=TRUE)
+# Doesn't look super differnet 
+# In the end, there's not a lot of change witht eh cube term 
+# IT has a small coef compared to the others as well, so so not super big influence out the gate but we dont know if its a tually influencital we would haev to check other htings
+```
+
+```{r}
+anova(modSATcubic)
+# Tells you if all the other models are sig
+# Tells us that takers to the 3rd isn't useful 
+```
+
+```{r}
+car::vif(modSATcubic)
+# shows that there is a high multicollinearity with takers
+```
+
+
+```{r}
+modSATquad4 = lm(SAT~ Rank+ I(Rank^2), data=StateSAT)
+summary(modSATquad4)
+# Model looks pretty good, rank and rank^@ are not sig; btut ehre is a hug amount of multicollinearity 
+# P value is close to 0, but the individual tests say things different because of the multicollinearity 
+
+plot(modSATquad4)
+# Residual anaysis isn't too bad
+# Normal is a little bit of an issue
+ 
+plot(SAT~Rank, data=StateSAT)
+# Slight curve when we raise to a power 
+# Not a linear relationship 
+# We could fit a line to it, but there may be some issues 
+# THis is the more ideal situation than a line 
+
+B0_modSATquad4 = summary(modSATquad4)$coef[1,1]
+B1_modSATquad4 = summary(modSATquad4)$coef[2,1]
+B2_modSATquad4 = summary(modSATquad4)$coef[3,1]
+
+curve(B0_modSATquad4 + B1_modSATquad4*x + B2_modSATquad4*x^2, add=TRUE)
+```
+
+```{r}
+# IF we jsut used a squared rank term, then we would 
+# IT ssimilar, but not quite just right
+# WE have to flatten the parabola out more 
+# Still centered at the zero, jsut stretched further and its less useful 
+plot(SAT~Rank, data=StateSAT)
+mod2 = lm(SAT~I(Rank^2), data=StateSAT)
+
+B0_mod2 = summary(mod2)$coef[1,1]
+B1_mod2 = summary(mod2)$coef[2,1]
+
+curve(B0_mod2 + B1_mod2*x^2, add=TRUE)
+```
+
+__Polynomial with one predictor__ 
+- We can use different order models that look at other models in a 3D space for predictors 
+
+__Second Order Models__
+Definition: A second order model for two quantitative predictors would be
+𝑌=𝛽_𝑜+𝛽_1 𝑋_1+𝛽_2 𝑋_2+𝛽_3 𝑋_1^2+𝛽_4 𝑋_2^2+𝛽_5 𝑋_1 𝑋_2+𝜀
+Y = INtercept + First Order + First Order + Quadratic + Quadratic + INteraction, where Wuadratic+ INTeraction = Second order 
+
+Example: Try a full second order model for 
+Y=SAT using X1=Takers and X2=Expend
+
+

@@ -1,0 +1,25 @@
+---
+title: "R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+---
+This is the "Iris" dataset. Originally published at UCI Machine Learning Repository: Iris Data Set, this small dataset from 1936 is often used for testing out machine learning algorithms and visualizations (for example, Scatter Plot). Each row of the table represents an iris flower, including its species and dimensions of its botanical parts, sepal and petal, in centimeters.
+
+```{r}
+Iris = readr::read_csv(
+  "https://gist.githubusercontent.com/curran/a08a1080b88344b0c8a7/raw/0e7a9b0a5d22642a06d3d5b9bcbad9890c8ee534/iris.csv",    show_col_types = FALSE)
+```
+
+Q23: Construct a one-way ANOVA model for the sepal length for each species of flower, using the species type as the predictor. Include the output showing the ANOVA table. Comment on what this output tells you about the sepal length across different spieces.
+
+```{r}
+Iris23 = aov(sepal_length~species, data = Iris)
+summary(Iris23)
+
+round(tapply(Iris$sepal_length,Iris$species,sd),2)
+
+plot(Iris23, 1:2)
+boxplot(sepal_length~species, data = Iris)
+```
+Since p-value is less than 0.05, we conclude that species is a significant predictor for sepal length. The spread of residuals is slightly increasing at each specie, however, there's no specie that has a standard deviation of more than double of the other. From the qqplot, we can see that the points are generally following the fitted line as well. Therefore, there's no big issue with constant variance and normalityï¼Œ which means species is an useful predictor in predicting sepal length. 

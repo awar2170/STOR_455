@@ -1,0 +1,14 @@
+---
+title: "STOR 455 Class 7 R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r warning=FALSE, message=FALSE}
+library(Stat2Data)
+
+data("LongJumpOlympics2016")
+data("PalmBeach")
+```
+

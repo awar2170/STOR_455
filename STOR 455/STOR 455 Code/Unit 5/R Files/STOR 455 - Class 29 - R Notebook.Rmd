@@ -1,0 +1,315 @@
+---
+title: "STOR 455 Class 29 R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+  pdf_document: default
+---
+
+```{r message=FALSE, warning=FALSE}
+library(Stat2Data)
+library(leaps)
+
+source("https://raw.githubusercontent.com/JA-McLean/STOR455/master/scripts/ShowSubsets.R")
+
+logit = function(B0, B1, x)
+{
+  exp(B0+B1*x)/(1+exp(B0+B1*x))
+}
+```
+
+__Categorical Predictors with Multiple Categories in Logistic Regression__
+Example: Predicting survival in an intensive care unit (ICU)
+Response: Survive = 0 for dead and 1 for lived 
+Predictor: AgeGroup = 1 for YOung, 2 for middle, 3 for old 
+```{r}
+data("ICU")
+head(ICU)
+```
+
+__Categorical Predictors with Multiple Categories in Logistic Regression__
+- Two approaches:
+1. **Method #1:** Logistic regression for Survive with AgeGroup 		  as a quantitative predictor.
+2. **Method #2:** Use dummy (indicator) variables for the age 	 	  categories as predictors in a logistic regression 		  model for Survive. 
+
+__Method #1: AgeGroup as Quantitative Pred__
+```{r}
+ICUmod = glm(Survive~AgeGroup, data=ICU, family=binomial)
+
+summary(ICUmod)
+
+B0 = summary(ICUmod)$coef[1]
+B1 = summary(ICUmod)$coef[2]
+
+plot(jitter(Survive,amount=0.1)~AgeGroup,data=ICU)
+curve(logit(B0, B1, x),add=TRUE, col="red")
+```
+The above is a log mod that predicets survive y age group with fam = bi; if we don't tell it fam = bi, then it will only give us a line and we wont get teh curve we want 
+
+if it's non zero, tehn there is a change in teh log odds based on surviving based on teh age group 
+when we plot this we can look at it and see the coeffs. 
+
+__Method #1: AgeGroup as Quantitative Pred__
+```{r}
+pi = logit(B0, B1, ICU$AgeGroup)
+head(pi)
+
+odds = pi/(1-pi)
+head(odds)
+
+plot(log(odds)~ICU$AgeGroup)
+abline(B0,B1)
+```
+The above shows what we are predicting ; the odds are teh predicitng/ 1-odds predicted. 
+
+ploting the logodds with teh mdel on top of it 
+
+plotting teh log odds against teh other things here. 
+
+the predicts are right on this line; as we goes from young to middle to old we follow this ration 
+
+we miht not have this be true we might be forcing a relationship 
+
+its like when we were looking at active vs resting heartrate 
+
+its assuming a consistent rate of chaneg between age groups 
+
+if we lok at how the data actuallyuly looks with teh table; we can see that the actual counts are 
+
+we want to see the proportions are they different from teh predicted values and how much? 
+
+so we are going to make a table that are the proportions 
+
+so 54/59; etc etc. the prop.table will make this prop table for us 
+
+we want to lok at teh column proportion for those who surived adn that's why we have a 2 in the code below 
+
+__Two-way Table: Survive by AgeGroup__
+```{r}
+# Two way table of Counts
+ICU.table = table(ICU$Survive, ICU$AgeGroup)
+ICU.table
+
+# Two way table of Column Proportions
+ICU.prop.table = prop.table(ICU.table,2)
+ICU.prop.table
+
+# Two way table of Column logodds
+logodds.ICU.table = log(ICU.prop.table/(1-ICU.prop.table))
+logodds.ICU.table
+```
+above we can see in teh actual data ,the ic propo will tell us teh proportions; we have 
+
+if we plot all these together then we get a log odds table; that lets us plot it all together 
+logodds  proportion/ 1-proprotion 
+
+we want to be able to plot this, but it wont work well in a table format, so we need to make thi a dataframe. 
+
+we want teh columsn transposed; t = transponse 
+__Two-way Table: Survive by AgeGroup__
+```{r}
+logodds.ICU.df = t(as.data.frame.matrix(logodds.ICU.table))
+head(logodds.ICU.df)
+```
+
+```{r}
+plot(log(odds)~ICU$AgeGroup, ylim=c(.5, 2.5))
+abline(B0,B1)
+points(logodds.ICU.df[,2], col="dark red",pch="*")
+```
+
+the above pulls out all the log odds rows and makes them red so they stand out this is so that you can do somethign else 
+
+what if we wanted two age groups; we could make 1 age group for young, and one for old; and if its' not either then it has to be middle; but we have used this to be 1 = young and the other is middle, then old would be both = 0 
+__Method #2: Survive ~ Middle + Old__
+```{r}
+ICUmod.2 = glm(Survive~factor(AgeGroup), data=ICU, family=binomial)
+summary(ICUmod.2)
+```
+ __Dummy Indicators for Multiple Categories__
+For a categorical predictor with k levels, we should use   k − 1 dummy indicators. 
+X = 1 if group 1, 0 if otherwise 
+Xi-1 = 1 if in group k-1, 0 if otherwise 
+
+What happens to Group #k? 
+That is teh reference group 
+
+Constant term is an estimate for Group #k and other coefficients are the differences from it.
+
+- The coef for age 2 and 3 are the log odds for each in relation to the survive 
+ 
+- we dont want to lok at certain age groups we want ot know if age group as a whole is a good predicotr 
+ the ines dont give us that 
+
+__Binary Logistic Regression Model__
+Y = Binary response
+X1,X2,…,Xk = Multiple predictors
+π = proportion of 1’s at any x1, x2, …, xk
+Equivalent forms of the logistic regression model:
+Logit form: log⁡(𝜋/(1−𝜋))=𝛽_0+𝛽_1 𝑥_1+𝛽_2 𝑥_2+⋯+𝛽_𝑘 𝑥_𝑘
+
+Probability form: 𝜋=𝑒^(𝛽_𝑜+𝛽_1 𝑥_1+𝛽_2 𝑥_2+⋯+𝛽_𝑘 𝑥_𝑘 )/(1+𝑒^(𝛽_𝑜+𝛽_1 𝑥_1+𝛽_2 𝑥_2+⋯+𝛽_𝑘 𝑥_𝑘 ) )
+
+y = binary response; X1, X2, Xk = mult predictor 
+ 
+ pi = propotion of 1 at any xi 
+ 
+ this is equal to the log reg mod 
+ 
+ log form = log(pi/1-pi) = B0_B1X1+B2X2 +...BkXk
+ 
+ prob form = pi = (e^(B0+B1X1+...+BkXk)/1-e^(same as num))
+ 
+ we can also use anova below to do the hypothesisi test; there aren't teh samekind of residuals 
+ 
+ the chisq thing will tell it; 
+ 
+ recall nested f-test 
+ basic idea: Is teh improvement (reduction in SEE) Sig for teh number of extra preditores? 
+ 
+ compare full model to reduced model = use t.s. = F - ratio (interpret similar to ANOVA)
+
+ __Interpreting Individual Tests__
+ Similar issues to ordinary regression:
+- Is the predictor helpful, given the other predictors are already in the model? 
+- Beware of problems due to multicollinearity.
+- Try to keep the model simple.
+
+__G-Test for Overall Fit__
+H0:β1=β2=…=βk=0   vs.  Ha: Some βi ≠ 0
+	t.s. = G = improvement in –2log(L) over a model with just a constant term
+ 	Compare to 2 with k d.f. 
+
+    Null deviance: 200.16  on 199  degrees of freedom
+Residual deviance: 191.59  on 197  degrees of freedom 
+𝐺=200.16−191.59=8.57
+
+1-pchisq(8.57,2)
+[1] 0.01377362 <- Reject H0 
+
+__Method #2: Survive ~ Middle + Old__
+Coefficients:
+                  Estimate Std. Error z value Pr(>|z|)    
+(Intercept)         **2.3795**     0.4675   5.090 3.57e-07 *** <- Log(oods) young
+factor(AgeGroup)2  **-1.1184**     0.5422  -2.063  0.03915 *  
+factor(AgeGroup)3  **-1.4413**     0.5439  -2.650  0.00805 ** 
+
+The factor age group bolded = the change in log(odds) for middle and old compared to young 
+
+
+```{r}
+anova(ICUmod.2, test="Chisq")
+```
+
+__Recall: Nested F-test__
+Purpose: Test a subset of predictors
+Ex:  𝑌=𝛽1𝑋1+𝛽2𝑋2+𝛽3𝑋3+𝛽4𝑋4+𝛽5𝑋5 + 𝜀   
+𝐻0:𝛽3=𝛽4=𝛽5=0   vs.  𝐻𝑎: 𝑆𝑜𝑚𝑒 𝛽𝑖 ≠ 0 for i>2
+
+Basic idea: Is the improvement (reduction in SSE)  “significant” for the number of extra predictors?
+i.e. Compare “full” model to “reduced” model
+
+t.s.= F-ratio (interpret similar to ANOVA)
+
+__Nested LRT for Logistic Regression(Likelihood Ratio Test)__
+Purpose: Test a subset of predictors
+Ex:  log⁡(𝑜𝑑𝑑𝑠)=𝛽1𝑋1+𝛽2𝑋2+𝛽3𝑋3+𝛽4𝑋4+𝛽5𝑋5    
+𝐻0:𝛽3=𝛽4=𝛽5=0   vs.  𝐻𝑎: 𝑆𝑜𝑚𝑒 𝛽𝑖 ≠ 0 for i>2
+
+Basic idea: Is the improvement, change in –2log⁡(𝐿),  “significant” for the number of extra predictors?
+i.e. Compare “reduced” model to “full” model
+
+ 𝜒^2=–2log⁡(𝐿𝑅𝑒𝑑𝑢𝑐𝑒𝑑) – (–2log⁡(𝐿𝐹𝑢𝑙𝑙)) 
+
+Chi-square d.f.=#extra predictors tested
+
+__Comparing Full to Reduced Models__
+ICUMod 3 = full and ICUMod2 = reduced
+
+𝐻0:𝛽3=0   vs.  𝐻𝑎: 𝛽3 ≠ 0
+
+```{r}
+ICUmod.3 = glm(Survive~factor(AgeGroup)+Emergency, data=ICU, family=binomial)
+summary(ICUmod.3)
+```
+use anova for a drop in dev test; 
+
+this tells us 
+
+ICU mod 2 = reduced and 3 = full with emergency 
+
+we are going to see that just the two models you get the two residuals deviationces, it tells you df difference; its teh 1 bc its jstthe emerg var; the 
+
+doesnt give a p value ebcause we didnt give it a test 
+
+if we tell it the test is chisq, then we will get teh pvaleu 
+
+there are small values and they are different; tehre are different assumptions being made; it prob wont change the decision, but ti could be difference value thatn teh summaru 
+__Drop in Deviance Test__
+```{r}
+1 - pchisq(summary(ICUmod.2)$deviance - summary(ICUmod.3)$deviance, 1)
+
+#Reject H0 (p-value= 6.187652e-06). The Emergency term significantly improves the model.
+# This is also often called a “Drop-in-Deviance” test.
+
+```
+
+```{r}
+anova(ICUmod.2, ICUmod.3, test="Chisq")
+```
+
+__Example: Predicting Medical School Acceptance__
+Data:   MedGPA   
+Accept	Status: A=accepted to medical school or D=denied admission
+Acceptance	Indicator for Accept: 1=accepted or 0=denied
+Sex	F=female or M=male
+BCPM	Bio/Chem/Physics/Math grade point average
+GPA	College grade point average
+VR	Verbal reasoning (subscore)
+PS	Physical sciences (subscore)
+WS	Writing sample (subcore)
+BS	Biological sciences (subscore)
+MCAT	Score on the MCAT exam (sum of CR+PS+WS+BS)
+Apps	Number of medical schools applied to
+
+Goal: Find the “best” model for Acceptance using some or all of these predictors. 
+
+
+NOw, what if instead i did the anova of mod3; with a test = chisq; that is going to give su s a  table tha tdeos teh test but compares with teh factor with teh null and tehn comp emergenc withw factor age grouo 
+it everytime i add a thing then it des a nested test
+
+useful only if you want to test things in order 
+
+if we want to test different order tehnw e have to do something difference. '
+```{r}
+data(MedGPA)
+head(MedGPA)
+```
+
+__Criteria to Compare Models for Ordinary Multiple Regression__
+- Look for large R2
+-- But R2 is always best for the model with all predictors
+- Look for large adjusted R2
+-- Helps factor in the number of predictors in the model
+- Look at individual t-tests
+-- Might be susceptible to multicollinearity problems
+
+
+_-How to Choose Models to Compare for Ordinary Multiple Regression?_
+Method #1: All Subsets!
+Consider all possible combinations of predictors.
+How many are there?
+Pool of k predictors -> 2𝑘−1 subsets
+
+Advantage: Find the best model for your criteria
+Disadvantage: LOTS of computation
+
+- Note: requires leaps package
+
+```{r}
+all = regsubsets(Acceptance~., data=MedGPA[,2:11])
+ShowSubsets(all)
+# This “works” in the sense that it runs, but creates a linear not a logistic model…
+```
+
+Will learn later how to automate the chosing the best model for other types of models 

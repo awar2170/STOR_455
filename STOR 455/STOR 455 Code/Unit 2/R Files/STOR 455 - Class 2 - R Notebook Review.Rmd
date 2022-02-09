@@ -1,0 +1,148 @@
+---
+title: "STOR 455 - Class 2 - R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+  pdf_document: default
+---
+
+```{r warning = FALSE, message=FALSE}
+# loads packages needed
+# install a package before first using it for the first time
+
+library(readr)
+library(mosaic)
+
+# loads the DistanceHome dataframe into the environment from github
+
+DistanceHome <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/DistanceHome.csv")
+
+# Alternative way to load dataframe (remove # to use)
+# DistanceHome.csv must be saved in the same folder as this notebook!
+
+#DistanceHome <- read_csv("DistanceHome.csv")
+
+# Shows the variables and first 6 cases (by default)
+head(DistanceHome)
+```
+__Example: Distance to Home__
+- *Question:* How can we predict the distance from campus to home for Carolina students? 
+- *Data:* Estimated distance to home (in miles) for students taking STOR 455 in a previous semester. 
+- *Predictor variables:* Start with none.
+
+__Example: Constant Model__
+Y = c + Error
+
+Where c = an unknown constant 
+
+**Terminology** 
+- "The constant c" = **parameter** of the model 
+- "Sample estimate" - use data to provide a sample estimate of c 
+
+*How should we estimate 𝑐 from data?*
+
+*Below:* Summarize the Distance variable  - Numerical: mean and median
+```{r}
+# dataframe$variable_name
+
+mean(DistanceHome$Distance)
+median(DistanceHome$Distance)
+```
+
+*Below:* Summarize the Distance variable - Graphical: histogram, boxplot
+```{r}
+hist(DistanceHome$Distance, breaks=20)
+boxplot(DistanceHome$Distance, horizontal = TRUE)
+```
+
+__Predicted Value for Response__
+- Get an estimate for Y using the predictors and the model with estimated parameters. 
+
+*Notation:* The predicted y is denoted yhat 
+
+For the constant Model: yhat = chat 
+
+Examples: 
+yhat = chat = ybar (*sample mean) 
+yhat = chat = m (sample median)
+
+__Can we use a predictor to improve the model? __
+X = Hours to travel home? 
+X = Introvert? 
+- Two sample t test for a difference in means 
+
+__Model with a Binary Predictor__
+Y = f(x) + Error 
+where X = introversion, 
+mu1 = mean distance for Extroverts 
+mu2 = mean distance for Introverts 
+```{r}
+mean(Distance~Introvert, data=DistanceHome)
+
+tally(~Introvert, data=DistanceHome)
+
+sd(Distance~Introvert, data=DistanceHome)
+
+boxplot(Distance~Introvert, data=DistanceHome, horizontal=TRUE)
+```
+
+__Two-sample T-Test Difference in Means__
+*Hypothesis* 
+Ho: Mu1 = Mu2
+Ha: Mu1 != Mu2 
+
+*Compare to a t-dist* 
+
+__P-value__
+- The p-value is the proportion of samples, when the H0 is true, that would be as (or more) extreme as the observed sample. 
+
+*Below, Conclusion:* Decision: Reject H0 only when the p-value is small. 
+```{r}
+t.test(Distance~Introvert, data=DistanceHome)
+```
+
+__Normality?__
+- The two-sample t-test assumes both samples are from normal populations
+
+__Domestic Distance__
+- Suppose that we look only at distances that are really “drivable”?
+*See below* 
+```{r}
+Domestic = subset(DistanceHome, Distance<250)
+head(Domestic)
+```
+
+- For distance home (only including students less than 250 miles from home) the Introvert variable does not improve the model significantly. 
+
+```{r}
+boxplot(Distance~Introvert, data=Domestic, horizontal=TRUE)
+
+t.test(Distance~Introvert, data=Domestic)
+```
+
+__Inference Review: Hypothesis Testing__ 
+- Suppose that we look only at distances that are really “drivable”?
+*Test* 
+Ho: mu1 = Mu2
+Ha: mu1 != Mu2
+
+There is a 93.3% chance that we would receive a samples with a difference as extreme as we did if the null hypothesis is true.
+p-value = 0.933
+
+Since the p-value is greater than 0.05, we fail to reject the null hypothesis.
+There is not evidence to suggest that there is a difference in the number of miles from home Carolina students are (of those students 250 miles or less) based on if they are introverts or extroverts.
+
+There is a 93.3% chance that we would receive a samples with a difference as extreme as we did if the null hypothesis is true.
+p-value = 0.933
+
+```{r}
+Domestic=subset(DistanceHome,Distance<250)
+```
+
+__Domestic Distance__ 
+For distance home (only including students less than 250 miles from home) the Introvert variable does not improve the model significantly. 
+
+```{r}
+t.test(Distance~Introvert, data=Domestic)
+```
+

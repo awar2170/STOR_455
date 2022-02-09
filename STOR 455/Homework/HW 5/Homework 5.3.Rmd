@@ -1,0 +1,389 @@
+---
+title: 'STOR 455 Homework #5'
+subtitle: 40 points - Due 10/20 at 5:00pm
+geometry: margin = 2.25cm
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+__Directions:__ For parts 6 and 9 you may work together, but they should be __submitted individually__ by each group member. For parts 7 and 8, you should have only __one submission per group__. There will be separate places on Gradescope to submit the individual vs group work. 
+
+__Situation:__ Can we predict the selling price of a house in Ames, Iowa based on recorded features of the house? That is your task for this assignment. Each team will get a dataset with information on forty potential predictors and the selling price (in $1,000’s) for a sample of homes. The data sets for your group are AmesTrain??.csv and AmesTest??.csv (where ?? corresponds to your group number) A separate file identifies the variables in the Ames Housing data and explains some of the coding.
+
+```{r}
+library(readr)
+library(corrplot)
+library(leaps)
+library(car)
+```
+
+#### Part 6. Cross-validation: ####
+In some situations, a model might fit the peculiarities of a specific sample of data well, but not reflect structure that is really present in the population. A good test for how your model might work on "real" house prices can be simulated by seeing how well your fitted model does at predicting prices that were NOT in your original sample. This is why we reserved an additional 200 cases as a holdout sample in AmesTest??.csv. Import your holdout test data and 
+
+```{r}
+setwd("C:/Users/adeve/Desktop")
+amestrain24 <- read.csv("AmesTrain24.csv")
+amestest24 <- read.csv("AmesTest24.csv")
+```
+* Compute the predicted Price for each of the cases in the holdout test sample, using your model resulting from the initial fit and residual analysis in parts 1 and 2 of Homework #3. This should be done with the same AmesTrain??.csv dataset that you used for homework #3, with your assignment #3 group numbe, and AmesTrain?? also using your assignment #3 group number. 
+```{r}
+allsubmod = lm(Price~Fireplaces+GarageSF+GroundSF, amestrain24)
+
+ames.test.predict <- predict(allsubmod, newdata=amestest24)
+```
+
+* Compute the residuals for the 200 holdout cases.
+```{r}
+ames.test.residual = amestest24$Price - ames.test.predict
+```
+* Compute the mean and standard deviation of these residuals. Are they close to what you expect from the training model?
+
+*From the summary of the allsubmod, we would expect a residual standard error of 46.14.  Since the ames.test.residual is 37.61 and we are talking about thousands of dollars when referring to houses, the residual is roughly close enough to what we would expect from the training model.*
+```{r}
+mean(ames.test.residual)
+sd(ames.test.residual)
+
+summary(allsubmod)
+```
+* Construct a plot of the residuals to determine if they are normally distributed. Is this plot what you expect to see considering the training model?
+*The residuals in the testing data are more spread out than in the training data. Furthermore, the right tail of the QQNorm plot on the testing data is much more prominent than the training data.  This suggests that there may be a skew that a model that is fitted to the testing data that may not be accounted for in the other data.* 
+```{r}
+plot(allsubmod)
+hist(allsubmod$residuals)
+
+plot(ames.test.residual)
+qqnorm(ames.test.residual)
+qqline(ames.test.residual)
+hist(ames.test.residual)
+```
+
+* Are any holdout cases especially poorly predicted by the training model? If so, identify by the row number(s) in the holdout data. 
+*The biggest holdout case is 94 with a residual value of positive 133.758.  Based on the cook's distance plot in the previous question, there does not appear to be any points outside of 0.5 of cook's distance, so that is good.*
+
+```{r}
+head(sort(ames.test.residual), decreasing=FALSE, 10)
+tail(sort(ames.test.residual), decreasing=TRUE, 10)
+```
+
+* Compute the correlation between the predicted values and actual prices for the holdout sample. This is known as the cross-validation correlation. We don’t expect the training model to do better at predicting values different from those that were used to build it (as reflected in the original $R^{2}$), but an effective model shouldn’t do a lot worse at predicting the holdout values. Square the cross-validation correlation to get an $R^{2}$ value and subtract it from the original $R^{2}$ of the training sample. This is known as the shrinkage. We won’t have specific rules about how little the shrinkage should be, but give an opinion on whether the shrinkage looks OK to you or too large in your situation. 
+
+*The shrinkage is 0.3279954, which is pretty bad  It could definitely be better.  If it was closer to 0, it would mean that the model is going a better job at predicting the new data compared to the original data.  We should aim for a shrinkage under 1%, and this is at least 32%, which is pretty bad.*
+
+```{r}
+crosscor = cor(amestest24$Price, ames.test.residual)
+
+summary(allsubmod)$r.squared
+crosscor^2
+
+Shrinkage = summary(allsubmod)$r.squared - crosscor^2
+Shrinkage
+```
+
+#### Part 7. Find a “fancy model”: #### 
+Use AmesTrain??.csv, where ?? corresponds to your new group number. In addition to the quantitative predictors from homework #3, you may now consider models with
+
+* Categorical variables from the original dataset. Just put these in the model and let R take care of making the indicator predictors (and picking one category to leave out). Use factor( ) to treat a numeric variable as categorical. You’ll see the coefficients for each indicator when you look at the summary( ) and they will be grouped together in the ANOVA. Be careful, since adding a single categorical variable with a lot of categories might actually be adding a lot of new indicator terms.
+
+* Transformations of predictors. You can include functions of quantitative predictors. Probably best to use the I( ) notation so you don’t need to create new columns when you run the predictions for the test data. 
+
+* Transformations of the response. You might address curvature or skewness in residual plots by transforming the response prices with a function like log(Price), sqrt(Price), Price^2, etc..  These should generally not need the I( ) notation to make these adjustments. IMPORTANT: If you transform Price, be sure to reverse the transformation when making final predictions!
+
+* Combinations of variables. This might include interactions or other combinations. You do not need the I( ) notation when making an interaction using a categorical predictor (e.g.  GroundSF*CentralAir).
+
+Keep general track of the approaches you try and explain what guides your decisions as you select a new set of predictors (but again you don’t need to give full details of every model you consider). Along the way you should consider some residual analysis.
+
+
+```{r}
+AmesTest5 <- read.csv("AmesTest5.csv")
+AmesTrain5 <- read.csv("AmesTrain5.csv")
+```
+
+
+Our full model from Homework 3 was:
+```{r}
+AmesTrain5$HBath = AmesTrain5$BasementHBath + AmesTrain5$HalfBath
+AmesTrain5$FBath = AmesTrain5$BasementFBath + AmesTrain5$FullBath
+AmesTrain5$Porch = AmesTrain5$OpenPorchSF + AmesTrain5$EnclosedPorchSF + AmesTrain5$ScreenPorchSF
+
+HW3Full = lm(formula = log(Price) ~ YearBuilt + YearRemodel + LotFrontage + I(log(LotArea)) + Quality + Condition + BasementFinSF + BasementUnFinSF + BasementSF + FirstSF + SecondSF + I(log(GroundSF)) + Bedroom + TotalRooms + Fireplaces + GarageCars + I(GarageSF^1.5) + WoodDeckSF + HBath + FBath + Porch,
+                 data = AmesTrain5)
+```
+So to begin, we transformed the same predictors and our response variable for our initial full model here. Additionally, we used the same combinations of variables: HBath, FBath, and Porch. We then added into our full model all of the categorical predictors.
+
+```{r}
+FullTest = lm(log(Price)~
+            LotConfig + HouseStyle + ExteriorQ + ExteriorC + Foundation + BasementHt + BasementC + BasementFin + Heating + HeatingQC + CentralAir + KitchenQ + GarageType + GarageQ + GarageC + YearBuilt + YearRemodel + LotFrontage + I(log(LotArea)) + factor(Quality) + factor(Condition) + BasementFinSF + BasementUnFinSF + BasementSF + FirstSF + SecondSF + I(log(GroundSF)) + Bedroom + TotalRooms + Fireplaces + GarageCars + I(GarageSF^1.5) + WoodDeckSF + HBath + FBath + Porch, data=AmesTrain5)
+
+plot(FullTest)[1:2]
+#what does error message mean
+```
+
+
+1st Full model with initial predictor pool:
+```{r}
+Full = lm(log(Price)~
+            LotConfig + HouseStyle + ExteriorQ + ExteriorC + Foundation + BasementHt + BasementC + BasementFin + Heating + HeatingQC + CentralAir + KitchenQ + GarageType + GarageQ + GarageC + YearBuilt + YearRemodel + LotFrontage + I(log(LotArea)) + factor(Quality) + factor(Condition) + BasementFinSF + BasementUnFinSF + BasementSF + FirstSF + SecondSF + I(log(GroundSF)) + Bedroom + TotalRooms + Fireplaces + GarageCars + I(GarageSF^1.5) + WoodDeckSF + HBath + FBath + Porch + WoodDeckSF*Porch + factor(Quality)*YearBuilt + factor(Quality)*YearRemodel + factor(Condition)*YearBuilt + factor(Condition)*YearRemodel, data=AmesTrain5)
+```
+Fist, we applied factor() to the Quality and Condition predictors, as while they are numeric, they are more accurately described as categorical variables since they group homes into one of 10 categories.
+
+We added an interaction term between:
+-WoodDeckSF and Porch predictors because they are both related to outdoor space
+-factor(Quality) and YearBuilt and YearRemodel because how old a house is/when a house was updated often means it is of a better quality
+-factor(Condition) and YearBuilt and YearRemodel because how old a house is/when a house was updated often means it is in better condition
+
+Next, we used Forward Selection, Stepwise Regression, and Backwards Elimination and compared each output's AIC to determine which was the best model from this predictor pool.
+
+Forward Selection:
+```{r}
+none = lm(log(Price)~1, data=AmesTrain5)
+
+MSE = (summary(Full)$sigma)^2
+
+step(none, scope = list(upper=Full), scale=MSE, direction = 'forward', trace=FALSE)
+```
+AIC=-62.6
+
+Stepwise Regression:
+```{r}
+step(none, scope = list(upper=Full), scale=MSE, trace=FALSE)
+```
+AIC=-62.6
+
+
+Backward Elimination:
+```{r}
+step(Full, scale=MSE, trace=FALSE)
+```
+AIC=-61.4
+
+The models chosen by forward selection and stepwise regression were almost identical, with BasementHt being the only differing predictor, and both models had the exact same AIC. Additionally, both models meet linear conditions almost identically. Therefore, to reduce the number of predictors and try to avoid overfitting the data, we chose the model output by stepwise regression because it did not include the BasementHt predictor.
+
+Model Chosen by Stepwise:
+```{r}
+Mod1 = lm(formula = log(Price) ~ factor(Quality) + I(log(GroundSF)) + 
+    YearBuilt + I(log(LotArea)) + factor(Condition) + BasementFinSF + 
+    GarageCars + Porch + BasementSF + Fireplaces + KitchenQ + 
+    CentralAir + Bedroom + SecondSF + HouseStyle + HeatingQC + 
+    GarageC + LotFrontage + factor(Quality):YearBuilt + YearBuilt:factor(Condition), 
+    data = AmesTrain5)
+plot(Mod1)
+summary(Mod1)
+```
+This model has a Multiple R-squared of 0.9489. Looking at the residual vs fitted plot, the data looks very linear, so linearity is satisfied, but there are issues with constant variance as most of the data is concentrated between the fitted values of 4 and 6. Looking at the normal quantile plot, the data looks fairly linear, but has some issues at the tails of the data where it deviates from a normal distribution.
+
+
+Next, we adjusted our predictor pool.
+
+2nd Full Model:
+```{r}
+Full2 = lm(log(Price)~
+            LotConfig + HouseStyle + ExteriorQ + ExteriorC + Foundation + BasementHt + BasementC + BasementFin + Heating + HeatingQC + CentralAir + KitchenQ + GarageType + GarageQ + GarageC + YearBuilt + YearRemodel + LotFrontage + I(log(LotArea)) + factor(Quality) + factor(Condition) + BasementFinSF + BasementUnFinSF + BasementSF + FirstSF + SecondSF + I(log(GroundSF)) + Bedroom + TotalRooms + Fireplaces + GarageCars + I(GarageSF^1.5) + WoodDeckSF + HBath + FBath + Porch + factor(Quality)*YearBuilt + factor(Condition)*YearBuilt + GarageType*I(GarageSF^1.5) + ExteriorQ*ExteriorC + Bedroom*TotalRooms + Foundation*factor(Quality) + Foundation*factor(Condition), data=AmesTrain5)
+```
+Since our initial model selection processes did not choose the interaction terms with YearRemodel and the interaction term between WoodDeckSF and Porch, we eliminated them from our predictor pool, but kept the other two interaction terms with YearBuilt.
+
+We added interaction terms between:
+-GarageType and I(GarageSF^1.5) because increased square footage in certain types of garages has a higher value then other types
+-ExteriorQ and ExteriorC because quality and condition of the exterior are realted to each other
+-Bedroom and TotalRooms because the proportion of rooms that are bedrooms in a house should impact price of the house
+-Foundation and factor(Quality) because quality of the house may be in a different state based on the foundation
+-Foundation and factor(Condition) because condition of the house may be in a different state based on the foundation
+
+Next, we again used Forward Selection, Stepwise Regression, and Backwards Elimination and compared each output's AIC to determine which was the best model from this predictor pool.
+
+Forward Selection:
+```{r}
+none2 = lm(log(Price)~1, data=AmesTrain5)
+
+MSE2 = (summary(Full2)$sigma)^2
+
+step(none2, scope = list(upper=Full2), scale=MSE2, direction = 'forward', trace=FALSE)
+```
+AIC=143.21
+
+Stepwise Regression:
+```{r}
+step(none2, scope = list(upper=Full2), scale=MSE2, trace=FALSE)
+```
+AIC=140.75
+
+Backwards Elimination:
+```{r}
+step(Full2, scale=MSE2, trace=FALSE)
+```
+AIC=119.7
+
+Backwards elimination produced the model with the lowest AIC, so that will be our model of choice for this predictor pool.
+```{r}
+Mod2 = lm(formula = log(Price) ~ HouseStyle + ExteriorQ + ExteriorC + 
+    Foundation + CentralAir + KitchenQ + GarageType + YearBuilt + 
+    I(log(LotArea)) + factor(Quality) + factor(Condition) + BasementUnFinSF + 
+    BasementSF + SecondSF + I(log(GroundSF)) + Bedroom + TotalRooms + 
+    Fireplaces + I(GarageSF^1.5) + Porch + YearBuilt:factor(Condition) + 
+    GarageType:I(GarageSF^1.5) + ExteriorQ:ExteriorC + Bedroom:TotalRooms + 
+    Foundation:factor(Quality) + Foundation:factor(Condition), 
+    data = AmesTrain5)
+summary(Mod2)
+plot(Mod2)
+```
+This model has a Multiple R-squared of 0.9575. Also, looking at the residual vs fitted plot, the data looks very linear, so linearity is satisfied, but there are issues with constant variance as most of the data is concentrated between the fitted values of 4 and 6. Looking at the normal quantile plot, the data looks fairly linear, but again, like Mod1, has some issues at the tails of the data where it deviates from a normal distribution.
+
+3rd Predictor Pool:
+```{r}
+Full3 = lm(log(Price)~
+            LotConfig + HouseStyle + ExteriorQ + ExteriorC + Foundation + BasementHt + BasementC + BasementFin + Heating + HeatingQC + CentralAir + KitchenQ + GarageType + GarageQ + GarageC + YearBuilt + YearRemodel + LotFrontage + I(log(LotArea)) + factor(Quality) + factor(Condition) + BasementFinSF + BasementUnFinSF + BasementSF + FirstSF + SecondSF + I(log(GroundSF)) + Bedroom + TotalRooms + Fireplaces + GarageCars + I(GarageSF^1.5) + WoodDeckSF + HBath + FBath + Porch + YearBuilt*factor(Condition) + YearBuilt*factor(Quality) + GarageType*I(GarageSF^1.5) + ExteriorQ*ExteriorC + Bedroom*TotalRooms, data=AmesTrain5)
+```
+We removed the interaction terms with Foundation because the NA values in the summary output indicated it was a redundant term. We kept the rest of interaction terms chosen from our 2nd predictor pool and added back in the interaction term between YearBuilt and Quality because that was a useful interaction term in our 1st predictor pool.
+
+Forward Selection
+```{r}
+none3 = lm(log(Price)~1, data=AmesTrain5)
+
+MSE3 = (summary(Full3)$sigma)^2
+
+step(none3, scope = list(upper=Full3), scale=MSE3, direction = 'forward', trace=FALSE)
+```
+AIC=99.27
+
+Stepwise Regression
+```{r}
+step(none3, scope = list(upper=Full3), scale=MSE3, trace=FALSE)
+```
+AIC=99.27
+
+Backwards Elimination:
+```{r}
+step(Full3, scale=MSE3, trace=FALSE)
+```
+AIC=101.33
+
+The same model was chosen by forward selection and stepwise regression, which has the lowest AIC:
+```{r}
+Mod3 = lm(formula = log(Price) ~ factor(Quality) + I(log(GroundSF)) + 
+    YearBuilt + I(log(LotArea)) + factor(Condition) + BasementFinSF + 
+    GarageCars + Porch + BasementSF + Fireplaces + KitchenQ + 
+    CentralAir + GarageC + HeatingQC + LotFrontage + SecondSF + 
+    HouseStyle + Bedroom + FirstSF + I(GarageSF^1.5) + BasementFin + 
+    factor(Quality):YearBuilt + YearBuilt:factor(Condition), 
+    data = AmesTrain5)
+summary(Mod3)
+#large p-values, is that a problem?
+#This isn't a problem, it's a categorical variable thing
+plot(Mod3)
+```
+This model has a Multiple R-squared of 0.9504. Similarly to our other two models, looking at the residual vs fitted plot, the data looks very linear, so linearity is satisfied, but there are issues with constant variance as most of the data is concentrated between the fitted values of 4 and 6. Looking at the normal quantile plot, the data looks fairly linear, but has some issues at the tails of the data where it deviates from a normal distribution.
+
+Our 3rd and 1st models had very similar R^2s (0.9504 and 0.9489 respectively) and fit the linear conditions similarly, so because the 3 additional predictors included in the 3rd model were not significant (based on looking at the p-value of each respective hypothesis test for each term in our summary output) at a 5% significant level, and because we want to avoid overfitting so fewer predictors are better, we chose our 1st model (Mod1) as our final model.
+
+Final Model:
+```{r}
+summary(Mod1)
+plot(Mod1)
+```
+
+
+Notes/Tips:
+#can't compare mallow cp of models with differernt predictor pool
+* WARNING: When using a categorical predictor with multiple categories in regsubsets( ), R will create indicators and treat them as separate predictors when deciding which to put into a model. So you might get a model with quantitative predictors like LotArea and GroundSF along with specific indicators like GarageQTA and HouseStyle1Story. This may not be very useful, since we should generally use all indicators for a categorical predictor if we include one in the model. On the other hand, when using the step( ) function, R will generally keep the multiple indicators for different categories of the same variable together as a unit. 
+
+* In some cases the indicators created for different categorical variables will have identical values.  For example, if you include both GarageC and GarageQ in a model, R will produce values for each of the indicators. The indicators for GarageQNone and GarageCNone (equal to one only for houses that don’t have a garage) will be identical. This may be handled differently in R depending on the procedure. regsubsets( ) may give a “warning” about variables being linearly dependent.  You can still use the results, just be aware that some variables are completely dependent. lm( ) might give output with coefficients (and tests) of some predictors listed as NA.  This is not a problem, R is just automatically deleting one of the redundant variables. If you are predicting for a house with no garage you might have a coefficient to use for GarageQNone but then you don’t need to worry about having one for GarageCNone.
+
+* If your residual analysis from homework #3 or an early model here suggest you might want to do a transformation for the response variable (Price), do so _before_ fitting a lot more models. No sense fine tuning a set of predictors for Price, then deciding you should be predicting log(Price) or Price^2. So make that decision fairly early, but don’t get too picky and expect to get perfect plot of residuals versus fits or an exact normal quantile plot.
+
+* Similarly, if you decide that some data cases should be dropped from the training set, don’t wait until late in the process to do so. For example, if you spot a _very_ large residual you should look at the characteristics for that house to see if it should be deleted. Don’t forget about the value of simple plots (like a scatterplot of Price vs. LotArea) for helping to see what is going on and recognize extreme cases. Be sure to document any adjustments you make in the final report. 
+
+* When comparing $C_{p}$ from different predictor pools: While Mallow’s $C_{p}$ is a useful tool for comparing models from the same pool of predictors. You should not use it to compare models based on different predictor pools. For example, if you add a bunch of categorical variables to all the quantitative predictors from homework #3 to make a new “full” model, then find $C_{p}$ from a model that you fit in homework #3, it will be worse than it was before. If you look at the formula for calculating $C_{p}$, you will see that all that has changed is MSE for the full model after adding the new batch of predictors.  
+
+* I should be able to follow the steps you use when selecting a model. I certainly don’t need to see every bit of output, but it might help to include more of the R commands you use. For example, saying you used backward elimination is not very helpful when I don’t know what you start with for the full model or pool of predictors (e.g. did you include Condition and Quality as numeric predictors? or did you decide to eliminate one of GroundSF, FirstSF, or SecondSF due to redundancy?). The easiest way to convey this in many cases is to show the R command you used. It is fine to abbreviate the output (for example, delete many steps in a stepwise procedure using trace=FALSE), but it would be helpful if you identified the parts you do include.  For example, a sentence like “After 12 steps of the stepwise procedure, we have the output below for the fitted model.”  Similarly, I don’t need to see 600 residuals, using head and sort can show the important ones.
+
+* Once you have settled on a response, made adjustments to the data (if needed), and chosen a set of predictors, be sure to include the summary( )for your “fancy” model at this stage. 
+
+#### Part 8: Cross-validation for your “fancy” model ####
+    
+Redo the cross-validation analysis with your test data for your new fancy model. Use AmesTest??.csv, where ?? corresponds to your new group number. Discuss how the various measures (mean of residuals, std. dev of residuals, cross-validation correlation, and shrinkage) compare to the results you had for your basic model.  Don’t worry about looking for poorly predicted cases this time. If you transformed the response variable, consider how to take this into account for your residual analysis.
+
+```{r}
+AmesTest5$HBath = AmesTest5$BasementHBath + AmesTest5$HalfBath
+AmesTest5$FBath = AmesTest5$BasementFBath + AmesTest5$FullBath
+AmesTest5$Porch = AmesTest5$OpenPorchSF + AmesTest5$EnclosedPorchSF + AmesTest5$ScreenPorchSF
+
+AmesTest5$LogPrice = log(AmesTest5$Price)
+
+fitAmes2 = predict(Mod1, newdata=AmesTest5)
+```
+
+
+```{r}
+Amestestresid2 = AmesTest5$LogPrice - fitAmes2
+```
+
+```{r}
+mean(Amestestresid2)
+sd(Amestestresid2)
+```
+The mean of our residuals is -0.007368515 which is very close to 0, so it is good. The residual standard error of our Fancy model (Mod1) is 0.09738, which is close enough to 0.1914838 given the context of our units.
+
+```{r}
+qqnorm(Amestestresid2)
+qqline(Amestestresid2)
+```
+This data is similarly distributed as our training data, which is good.
+
+```{r}
+head(sort(Amestestresid2), decreasing=FALSE, 10)
+tail(sort(Amestestresid2), decreasing=TRUE, 10)
+```
+Row 76 has a residual of -2.0382464 which is much larger than other residuals, so it is poorly predicted by the training model. Row 190 has a residual of -0.5500505 which is also somewhat larger than the other residuals, so it is also poorly predicted by the training model.
+
+
+```{r}
+crosscor2 = cor(AmesTest5$LogPrice, fitAmes2)
+#what is cross correlation, where does 0.8136665 come from
+# It is like R^2 for the mod1 and kept all the coef the same, but used the new data. 
+
+summary(Mod1)$r.squared
+crosscor2^2
+
+Shrinkage2 = summary(Mod1)$r.squared - crosscor2^2
+Shrinkage2
+#is shrinkage too large
+```
+Our shrinkage is 0.1352151, which means there may be some slight concern of overfitting, but overall it's okay
+
+
+Note on missing categories:
+
+>When creating the predictions using predict(yourmodel,AmesTest) you may see an error like:  
+
+>Error in model.frame.default(Terms, newdata, na.action = na.action, xlev = object$xlevels) :   factor HouseStyle has new levels 1.5Unf, 2.5Fin, 2.5Unf  
+  
+>This occurs because the holdout sample has a value for the categorical variable that was not present in your training sample, so there is no indicator in your model to handle that case. To get a prediction for that house, you’ll need to switch the category to one that is in your training data.  In the example above you might choose to replace the “2.5Fin” house style with “2Story”. If you are not sure what category to use, try whatever R uses as the “left out” reference category. Be sure to record any changes like this that you make.
+
+#### Part 9. Final Model ####  
+
+Again, you may choose to make some additional adjustments to your model after considering the final residual analysis. If you do so, please explain what (and why) you did and provide the summary() for your new final model.
+    
+Suppose that you are interested in a house in Ames, Iowa that has characteristics listed below and want to find a 95% prediction interval for the price of this house.     
+   
+A 2 story 9 room home, built in 1995 and remodeled in 2003 on a 17450 sq. ft. corner lot with 300 feet of road frontage. Overall quality is good (7) and condition is average (5). The quality and condition of the exterior are both good (Gd) and it has a poured concrete foundation. There is an 875 sq. foot basement that has excellent height, but is completely unfinished and has no bath facilities. Heating comes from a gas air furnace that is in excellent condition and there is central air conditioning. The house has __2147 sq. ft.__ (fixed from homework #3) of living space above ground, 1164 on the first floor and 983 on the second, with 3 bedrooms, 2 full and one half baths, and 1 fireplace. The 1 car, built-in garage has 304 sq. ft. of space and is average (TA) for both quality and construction. The only porches or decks is a 274 sq. ft. open porch in the front.
+
+*With 95% confidence we can predict based on our model that the price of the described house is between 198.21 thousand dollars and 298.9756 thousand dollars* 
+```{r}
+Mod1 = lm(formula = log(Price) ~ factor(Quality) + I(log(GroundSF)) + 
+    YearBuilt + I(log(LotArea)) + factor(Condition) + BasementFinSF + 
+    GarageCars + Porch + BasementSF + Fireplaces + KitchenQ + 
+    CentralAir + Bedroom + SecondSF + HouseStyle + HeatingQC + 
+    GarageC + LotFrontage + factor(Quality):YearBuilt + YearBuilt:factor(Condition), 
+    data = AmesTrain5)
+
+newpoint.mod1 = data.frame(Quality=7, GroundSF=2147, YearBuilt=1995, LotArea=17450, Condition=5, BasementFinSF=0, GarageCars=1, Porch=274, BasementSF=875, Fireplaces=1, KitchenQ="TA", CentralAir="Y", Bedroom=3, SecondSF=983, HouseStyle="2Story", HeatingQC="Ex", GarageC= "TA", LotFrontage=300)
+
+predict.lm(Mod1, newpoint.mod1, interval = "prediction", level = 0.95)
+
+exp(5.289327)
+
+exp(5.700362)
+```
+

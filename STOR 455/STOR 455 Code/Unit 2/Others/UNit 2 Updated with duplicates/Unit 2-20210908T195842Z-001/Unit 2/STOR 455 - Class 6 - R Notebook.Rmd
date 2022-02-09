@@ -1,0 +1,117 @@
+---
+title: "STOR 455 Class 6 R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+ 
+```{r message=FALSE, warning=FALSE}
+# message=FALSE, warning=FALSE suppress warnings and messages from appearing in knitted files
+
+library(readr)
+library(Stat2Data)
+```
+
+```{r}
+data("LongJumpOlympics2016")
+head(LongJumpOlympics2016)
+```
+
+```{r}
+plot(Gold~Year, data=LongJumpOlympics2016)
+GoldModel = lm(Gold~Year, data=LongJumpOlympics2016)
+abline(GoldModel)
+
+plot(GoldModel, 1:2)
+summary(GoldModel)
+```
+
+```{r}
+boxplot(GoldModel$residuals)
+
+max(GoldModel$residuals)
+which.max(GoldModel$residuals)
+```
+
+```{r}
+rstandard(GoldModel)
+
+rstandard(GoldModel)[16]
+```
+THe above just looks at the one outlier that we want to look at 
+- we can tell that it is an outlier, but we can't tell if it has an impact ont eh model yet 
+- we cna plot the rstandard of the residual model 
+
+- studentized residuals: take single point and make a new regression line from that point pointa nd how that one point compares to the other thing; if we only made a predict on that one dot, then compare how that would look; it does this for every point in the data
+```{r}
+plot(rstandard(GoldModel)~GoldModel$fitted.values)
+abline(0,0)
+```
+THe below is focused on teh 16 value for the one dude we want to look at; bob something 
+
+**Lookoing at Influence** 
+using an app; if you moce a point in a ceratin way and how it effects thing 
+- adjust y value, it moves the test up; to overpredict 
+- if we vary it on the x axis and change the thing, then where ti is has more influence; 
+- the app shows where the fake line will be drawn based on where the other points are; it slike a "if this point looked like this, the regression would look like this" 
+- 
+```{r}
+plot(rstudent(GoldModel)~GoldModel$fitted.values)
+abline(0,0)
+
+rstudent(GoldModel)[16]
+```
+
+```{r}
+plot(IceModel3)
+
+max(rstandard(IceModel3))
+max(rstudent(IceModel3))
+```
+
+THe below talks about the model of the contestsed 2000 election between bush and al gore 
+```{r}
+data(PalmBeach)
+head(PalmBeach)
+
+ElectionModel = lm(Buchanan~Bush, data=PalmBeach)
+
+plot(Buchanan~Bush, data=PalmBeach)
+abline(ElectionModel)
+```
+ Below you see how people can do the thing; this compares how different the two models are 
+ Standarad error of 353 - one big value might make ti seem really big; it's tripling teh size of teh standard error of the residuals 
+ standaraized = includes the point; studentiazed - expcludes the point 
+```{r}
+plot(ElectionModel, 1:2)
+
+plot(rstudent(ElectionModel)~ElectionModel$fitted.values)
+abline(0,0)
+
+plot(rstandard(ElectionModel)~ElectionModel$fitted.values)
+abline(0,0)
+
+boxplot(ElectionModel$residuals, horizontal=TRUE)
+```
+THe below code takes out outlier county, so you can see what it looks like without it 
+- intercept goes down if you look at the stanard errors 
+```{r}
+newdata = subset(PalmBeach, County!="PALM BEACH")
+
+ElectionModel_noPB = lm(Buchanan~Bush, data=newdata)
+
+summary(ElectionModel)
+summary(ElectionModel_noPB)
+```
+Leaving out palm beach, makes it look nicer 
+```{r}
+plot(ElectionModel_noPB, 1:2)
+
+plot(rstudent(ElectionModel_noPB)~ElectionModel_noPB$fitted.values)
+abline(0,0)
+
+plot(rstandard(ElectionModel_noPB)~ElectionModel_noPB$fitted.values)
+abline(0,0)
+
+boxplot(ElectionModel_noPB$residuals, horizontal=TRUE)
+```

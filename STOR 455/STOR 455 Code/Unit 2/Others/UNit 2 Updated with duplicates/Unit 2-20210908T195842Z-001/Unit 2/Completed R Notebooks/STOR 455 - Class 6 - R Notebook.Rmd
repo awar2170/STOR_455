@@ -1,0 +1,103 @@
+---
+title: "STOR 455 Class 6 R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+ 
+```{r message=FALSE, warning=FALSE}
+# message=FALSE, warning=FALSE suppress warnings and messages from appearing in knitted files
+
+library(readr)
+library(Stat2Data)
+```
+
+```{r}
+data("LongJumpOlympics2016")
+head(LongJumpOlympics2016)
+```
+
+```{r}
+plot(Gold~Year, data=LongJumpOlympics2016)
+GoldModel = lm(Gold~Year, data=LongJumpOlympics2016)
+abline(GoldModel)
+
+plot(GoldModel, 1:2)
+summary(GoldModel)
+```
+
+```{r}
+boxplot(GoldModel$residuals)
+
+max(GoldModel$residuals)
+which.max(GoldModel$residuals)
+```
+
+```{r}
+rstandard(GoldModel)
+
+rstandard(GoldModel)[16]
+```
+
+```{r}
+plot(rstandard(GoldModel)~GoldModel$fitted.values)
+abline(0,0)
+```
+
+```{r}
+plot(rstudent(GoldModel)~GoldModel$fitted.values)
+abline(0,0)
+
+rstudent(GoldModel)[16]
+```
+
+```{r}
+plot(IceModel3)
+
+max(rstandard(IceModel3))
+max(rstudent(IceModel3))
+```
+
+
+```{r}
+data(PalmBeach)
+head(PalmBeach)
+
+ElectionModel = lm(Buchanan~Bush, data=PalmBeach)
+
+plot(Buchanan~Bush, data=PalmBeach)
+abline(ElectionModel)
+```
+
+```{r}
+plot(ElectionModel, 1:2)
+
+plot(rstudent(ElectionModel)~ElectionModel$fitted.values)
+abline(0,0)
+
+plot(rstandard(ElectionModel)~ElectionModel$fitted.values)
+abline(0,0)
+
+boxplot(ElectionModel$residuals, horizontal=TRUE)
+```
+
+```{r}
+newdata = subset(PalmBeach, County!="PALM BEACH")
+
+ElectionModel_noPB = lm(Buchanan~Bush, data=newdata)
+
+summary(ElectionModel)
+summary(ElectionModel_noPB)
+```
+
+```{r}
+plot(ElectionModel_noPB, 1:2)
+
+plot(rstudent(ElectionModel_noPB)~ElectionModel_noPB$fitted.values)
+abline(0,0)
+
+plot(rstandard(ElectionModel_noPB)~ElectionModel_noPB$fitted.values)
+abline(0,0)
+
+boxplot(ElectionModel_noPB$residuals, horizontal=TRUE)
+```

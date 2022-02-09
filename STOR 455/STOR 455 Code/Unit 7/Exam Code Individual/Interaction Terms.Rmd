@@ -1,0 +1,53 @@
+---
+title: "R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+---
+Group Members:
+Katherine Bacon
+Kay Youngstrom
+Ali Floyd
+Bethany Newcomb
+
+```{r}
+library(readr)
+sleep <- read.csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/SleepStudy.csv")
+```
+```{r}
+
+```
+
+8. Interaction Terms
+
+Create a model that predicts GPA based on Average Sleep.
+
+```{r}
+mod1 = lm(GPA~ AverageSleep, data = sleep)
+summary(mod1)
+```
+
+Now create a model precting GPA based on Average Sleep, Classes Missed, and an interaction between these two variables.
+
+```{r}
+mod2 = lm(GPA~ AverageSleep + ClassesMissed + AverageSleep*ClassesMissed, data = sleep)
+summary(mod2)
+```
+
+Does the ClassesMissed term improve our model? Use Anova or another test we have learned in class. No need for a formal hypothesis.
+
+```{r}
+anova(mod1, mod2)
+```
+
+
+The P-value is smaller than .05 which shows that it is significant. This means that at least one of the coefficients of ClassesMissed is non-zero and therefore makes our model better.
+
+
+
+
+
+
+
+
+

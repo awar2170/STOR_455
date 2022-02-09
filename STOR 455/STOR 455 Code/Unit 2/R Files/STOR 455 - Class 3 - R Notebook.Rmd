@@ -1,0 +1,76 @@
+---
+title: "STOR 455 Class 3 R Notebook"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+```{r message=FALSE, warning=FALSE}
+# message=FALSE, warning=FALSE supress warnings and messages from appearing in knitted html
+
+library(readr)
+
+DistanceHome <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/DistanceHome.csv")
+
+# If notebook and csv file are saved in the same folder
+# DistanceHome <- read_csv("DistanceHome.csv")
+
+Domestic=subset(DistanceHome,Distance<250)
+```
+
+```{r}
+plot(Distance~Hours, data=Domestic)
+```
+
+```{r}
+lm(Distance~Hours, data=Domestic)
+```
+
+```{r}
+mod1=lm(Distance~Hours, data=Domestic)
+plot(Distance~Hours, data=Domestic)
+abline(mod1)
+```
+
+```{r}
+summary(mod1)
+
+mod1$residuals
+mod1$fitted.values
+
+plot(mod1$residuals~mod1$fitted.values)
+abline(0,0)
+```
+
+```{r}
+hist(mod1$residuals, breaks=10)
+```
+
+```{r}
+qqnorm(mod1$residuals)
+qqline(mod1$residuals)
+```
+
+```{r}
+#Sets randomization
+set.seed(455001)
+
+#Sample of 99 values from a Normal distribution; mean=0; sd=1; sorted ascending
+x = sort(rnorm(99,0,1))
+hist(x)
+
+#list of integers 1 through 99.
+y = c(1:99)
+
+#z-scores of dataset of 99 values if perfectly normally distributed
+normy = qnorm(y/100)
+
+plot(x~normy)
+abline(0,1)
+```
+
+```{r}
+x <- rnorm(54, 0, 18.26)
+qqnorm(x)
+qqline(x)
+```

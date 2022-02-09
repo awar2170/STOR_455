@@ -1,0 +1,83 @@
+---
+title: "STOR 455 Class 8 R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r warning=FALSE, message=FALSE}
+library(readr)
+library(Stat2Data)
+library(metRology)
+
+DistanceHome <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/DistanceHome.csv")
+Domestic=subset(DistanceHome,Distance<250)
+
+source("https://raw.githubusercontent.com/JA-McLean/STOR455/master/scripts/CIPIPlot.R")
+```
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+# Display the Student's t distributions with various
+# degrees of freedom and compare to the normal distribution
+
+x <- seq(-4, 4, length=100)
+hx <- dnorm(x)
+
+degf <- c(1, 5, 15, 30)
+colors <- c("red", "blue", "darkgreen", "gold", "black")
+labels <- c("df=1", "df=5", "df=15", "df=30", "normal")
+
+plot(x, hx, type="l", lty=2, xlab="x value",
+  ylab="Density", main="Comparison of t Distributions")
+
+for (i in 1:4){
+  lines(x, dt(x,degf[i]), lwd=2, col=colors[i])
+}
+
+legend("topright", inset=.05, title="Distributions",
+  labels, lwd=2, lty=c(1, 1, 1, 1, 2), col=colors)
+```
+
+```{r}
+qt(0.975, 52)
+
+curve(
+  dt.scaled(
+    x, 
+    52,
+    mean = summary(moddist)$coef[2,1],
+    sd = summary(moddist)$coef[2,2]
+    ), 
+  from = 50, to = 68,
+  xlab = "Miles from Home ",
+  ylab = " "
+  )
+
+
+abline(
+  v=c(
+    qt.scaled(
+      0.025, 
+      52, 
+      mean = summary(moddist)$coef[2,1], 
+      sd = summary(moddist)$coef[2,2]
+      ),
+    qt.scaled(
+      0.975, 
+      52, 
+      mean = summary(moddist)$coef[2,1], 
+      sd = summary(moddist)$coef[2,2]
+      )
+    )
+  )
+```

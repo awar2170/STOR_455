@@ -1,0 +1,40 @@
+---
+title: 'Group Project #3'
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readr)
+SleepStudy <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/SleepStudy.csv")
+head(SleepStudy)
+```
+1) Construct a logistic model to predict the _Stress_ of a student using _GPA_, _AverageSleep_, and _ClassYear_ as the predictor variable.
+
+```{r}
+mod1 = glm(factor(Stress) ~ GPA + AverageSleep + ClassYear, data = SleepStudy, family = binomial)
+summary(mod1)
+```
+
+
+2) For a sophomore student that has a 3.50 GPA, gets an average of 8 hours of sleep a night, what does your model predict is their stress level? Interpret.
+
+```{r}
+'The student has a 0.75 chance of having a high level of stress.'
+
+student = data.frame(GPA = 3.50, AverageSleep = 8, ClassYear = 2)
+predict(mod1, student, type="response")
+```
+3) Construct a second logistic model to predict the _Stress_ of a student using _GPA_, _AverageSleep_, and _ClassYear_ as well as the interaction between _GPA_ and _ClassYear_ as the predictor variable.
+
+```{r}
+mod2 = glm(factor(Stress) ~ GPA + AverageSleep + ClassYear + GPA*ClassYear, data = SleepStudy, family = binomial)
+summary(mod2)
+```
+
+

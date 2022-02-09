@@ -1,0 +1,206 @@
+---
+title: "STOR 455 Class 8 R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r warning=FALSE, message=FALSE}
+library(readr)
+library(Stat2Data)
+library(metRology) # TO lok at some pictures and plots of what we are doing today 
+
+DistanceHome <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/DistanceHome.csv")
+Domestic=subset(DistanceHome,Distance<250)
+
+source("https://raw.githubusercontent.com/JA-McLean/STOR455/master/scripts/CIPIPlot.R") # Read in the file and cna call the ufnctiona s you would 
+```
+**Wifi isn't working, so I will have to trust teh process and hope this all works**
+- HOmeowrk is due today at 5pm
+
+**INference for SLope and iNtercept** 
+- FInd a confidence interval of plausible calues for the parameter 
+- test a hypothesis about a possible value for the parameter 
+
+THink about a sampling distribution 
+- Population (DIstance, UNC students) > Bi (Population slope; it's what is governing if everyone know the distance frmo home we'd be super good; we dont know popualtion ) 
+    - It would be nice to make a lot of regression lines of a lot of the population so that we could have a higher prediction being more correct 
+    
+Bootstrap Ditsribution 
+- Hypothesize ahwt things would like like based on this one sample 
+- maybe the popualtion is many compies of this one sample 
+- what variability is there with one sample; ex: you just haev te 54 peopl and you're taking 1 of them out and you're seeing how far away tehy are frmo hoema nd how long they take to get places and then you take it out and then put it back with replacement 
+- Sometimes you're going to get something normal, or off base;
+
+Poor professor, nothing is working fo rhim today.  The wifi is out for a couple of weeks and now the projector isn't working.  I feel for him, I can tell he is frustrated, but he is just trying to do his best. Adapt Improv Overcome; this dude just remote connected to his home computer; how the heck he does that without wifi, I have no idea; must be using his phone 
+
+
+```{r}
+# WE're going to have to hope that things work because I can't check it now; so dont trust these notes too much; check teh prefilled 
+moddist <- lm(Distance~Hours, Domestic)
+
+plot(Distance~Hours, Domestic)
+abline(moddist)
+
+summary(moddist)
+
+plot(moddist, c(1, 2, 5)) # This tells R to give me the 3 different specific residual plots that I want 
+# THe norm QQ plot tells us that there ma by e a skew
+# THe cook's distance plot: tells us on teh hor axis leverage (Far right = high leverage); vert axis = stand residual (Outliers); 
+
+# Looking at the summary; the slope shoudl be about 59/60 minutes; what do I think teh population value is? 
+# What claims could i make about the popualtion it came from? 
+```
+Looking at StatKey 
+- Use the domestic dataset 
+WIfi works now, yay!
+Looking at StatKey for COnfidence INterval for a Slope, Correlation; you cna loko here for a Bootstrap Dotplot of SLope 
+- What woudl this look likee if it was made by 
+- THe first point 
+**You should look into what bootstrap really is, because I don't follow it as well; check the textbook** 
+Click ont eh two tail button in StatKey; of the points or sample that you have the two tail will tell youwhere the 95% of the data are; it tells me that about 95% of data are bt 53 and 64; so we think taht this data came from someone who was somewehre beteween that interval 
+- R is diong soemthing differenthtough; it does a  classical way 
+
+**CI for Slope of Intecept** 
+BhatSubscript(I) +/- t * SE sibscript Bhatsub(I) 
+
+t* comes from a t dist with a n-2 d.f. and depends on teh level of confidence 
+
+for 1 - aplhas level confidence, use "qt(1-aplha, 2, d.f)
+
+e.g. for 95% confidence and 53 df, qt(0.975, 52)
+
+Good back to statkey and go to theo dist and click t 
+put in 52 degrees of freedom 
+# Review degrees of freedom 
+This will give us a more normal distribution 
+this can help us figiure out homw far do we need to go in the left and righ tto get teh middle of the popualtion; if we can get 95% in teh center, then we can say we are 95% confident that 95% of the data will contain something clsoe tot eh true popualtion mean; 
+
+
+Running the below chunk will have you get a t distribution in general 
+- the bigger the sample, the higer the df 
+we are trying to make this dist based on what our standard error is; teh big samplel this is pretty good rep; but if it's small lthen we need to go furteher away to find the middle 95% of the data 
+```{r}
+# Display the Student's t distributions with various
+# degrees of freedom and compare to the normal distribution
+
+x <- seq(-4, 4, length=100)
+hx <- dnorm(x)
+
+degf <- c(1, 5, 15, 30)
+colors <- c("red", "blue", "darkgreen", "gold", "black")
+labels <- c("df=1", "df=5", "df=15", "df=30", "normal")
+
+plot(x, hx, type="l", lty=2, xlab="x value",
+  ylab="Density", main="Comparison of t Distributions")
+
+for (i in 1:4){
+  lines(x, dt(x,degf[i]), lwd=2, col=colors[i])
+}
+
+legend("topright", inset=.05, title="Distributions",
+  labels, lwd=2, lty=c(1, 1, 1, 1, 2), col=colors)
+```
+This chucnk below creates t dist; center around 60; go some num of st dev from center to get aout 95% of the data in a chunk 
+```{r}
+# T* values; how many st errors do I need to go to get 95% of the data? 
+# R Wants to find what % befow the data at a certain point; so I need to cal the tails 
+
+
+# qt(area under curve to teh left tha twe want, df); right now the df = SAMPLE SIZE - 2 
+
+qt(0.95, 52)
+
+# Want to see what the con interval is, we have to start at sampel slope 
+
+summary(moddist)$coef[2,1] + qt(0.975, 52) * summary(moddist)$coef[2,2] # Upperbound
+
+summary(moddist)$coef[2,1] - qt(0.975, 52) * summary(moddist)$coef[2,2] # Lowerbound 
+```
+WE predict with 95% c; we are 95% sure that our result is somewhere between 54 and 64
+
+That snot the same as what we got in StatKey, but in statkey they have different assumptions; if we think that they wouldn't give us a normal distribution; then we should use bootstrap 
+
+**How to find a con interval** 
+WE dont haev to work as hard as doing what is above 
+#confint(Mymodel, level = 0, XX) 
+
+```{r}
+confint(moddist) # Default level = 0.95
+# This gives us the bounds 
+```
+# Accuracy of predictions 
+HOw accurate is that prediction? 
+If you wanted to make a confidence interval, you could see a prediction between mass and annuli 
+there's 2 ways to think about it 
+ex: It takes  student 2.25 hours to drive from home; how many miles do we predict that ehy are away from home? 
+If we want general; you cna just take the 2.25 and put it in your regression line 
+- what are you trying to predict? 
+- 1 person or the population? There's a difference; 1 person = more variability; they oculd by chance bike and have a really high time with a short distance; 
+- if we have our regression line on the normal curve where most of the people are close to that, but they eventually rail off; it gives us an idea of the mean, but if we think about predi a perons; it mgiht be part of them; or it i's probably around that for indicudals 
+
+There's a formula that "given yhat, on teh regression line, then we can go up adn down to find teh sum percent around that line; we are jsut going up and down a little bit fro nthat line 
+if we are predicitn gof ro one person, then var gets bigger because we are using less data 
+
+# Make  a new person and predict; make 1 var and do the thing 
+
+```{r}
+newx=data.frame(Hours = 2.25)
+head(newx)
+
+predict.lm(moddist, newx, interval="confidence") # All peope; for poualtion 
+predict.lm(moddist, newx, interval="prediction") # Distance home for one spec person 
+```
+THe above gives you the fitted value for each point on the line; the first confidence interval there's not much varability; lwr and upr = lowerbound and uperbound 
+
+HOw to visualize the things above 
+
+Use source from teh first thing in here; that is a function that this dude wrot e
+
+```{r}
+qt(0.975, 52)
+
+curve(
+  dt.scaled(
+    x, 
+    52,
+    mean = summary(moddist)$coef[2,1],
+    sd = summary(moddist)$coef[2,2]
+    ), 
+  from = 50, to = 68,
+  xlab = "Miles from Home ",
+  ylab = " "
+  )
+
+
+abline(
+  v=c(
+    qt.scaled(
+      0.025, 
+      52, 
+      mean = summary(moddist)$coef[2,1], 
+      sd = summary(moddist)$coef[2,2]
+      ),
+    qt.scaled(
+      0.975, 
+      52, 
+      mean = summary(moddist)$coef[2,1], 
+      sd = summary(moddist)$coef[2,2]
+      )
+    )
+  )
+```
+
+```{r}
+
+CIPIPlot
+
+CIPIPlot(Domestic$Hours, Domestic$Distance)
+```
+
+Red lines = confidence intervals; the mean is somewehre here; and that's wtih 95% confidence 
+- the blue lines if we are trying to predict 1 person's thing; its wider ebcause we want to be right 
+- these are all small examples, and they're going to get bigger quickly 
+- how using different var in teh model have a lot of impact on teh variability 
+- next class we will look at the other side of interfence and look at hypothesis testing; do we have evidence that there are some relationship between out pieces. 
+

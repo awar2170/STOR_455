@@ -1,0 +1,255 @@
+---
+title: "STOR 455 Class 38 R Notebook"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+
+```{r message=FALSE, warning=FALSE}
+library(readr)
+library(car)
+library(Stat2Data)
+
+Exams4 <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/Exams4.csv")
+```
+*Goal: Trying to see if there is a dif in means bt groups* 
+- Look how we can test variability between means
+
+__ANOVA for Difference in K Means__
+Data: Samples from K different groups
+Summary statistics: n1, ybar1, s1 for each group 
+Combine all 
+
+Test:
+Ho: mu1 = mu2 = muk 
+Ha: Some mui != muj 
+
+__Checking Conditions for ANOVA__
+E~N(0, Std of Errors)
+Check with residuals 
+
+- Zero Mean: Always holds for sample residuals
+- COnstant Variance: Plot residuals vs. fits and/or compare std. dev.’s of groups
+(Check if some group si is more than twice another)
+- Normaility: Histogram/normal plot of residuals
+- Independence:Pay attention to data collection
+
+__Example: Five Students__ 
+*Question of intereset: Is there a significant difference in average grade among the five students?* 
+- Test tells us if there is sig, but it doesn't always mean useful 
+- Found there are sig dif by student, and the variability are suspect to assume there weas constant variance here (Betsy's scores were all sim to each other while Bud was all close)
+- Laready groups so that the first student is grouped with their scores, etc, etc
+
+__ANOVA for Grades vs. Students__
+*Can we assume equal variances?*
+```{r}
+tapply(Exams4$Grade, Exams4$Student, median)
+```
+```{r}
+medians = rep(tapply(Exams4$Grade, Exams4$Student, median), each=4)
+medians # Median scores for each student; some skew, which makes it different than means 
+# Want to keep track of not comparing this with an anova analysis 
+# Want to see how far away each score is from the median value 
+#Analysis of the variances of these absolute devations 
+```
+
+- Need to take the abso score - media to make a new array with all the values 
+- It's going to work nicely here, but it's not going to look unless we make the data look like this data 
+
+__Levene’s Test for Equality of Variances__
+
+Test: 
+Ho: variance1 = variance2 =...=variancek
+H1: some variancei!=variancej 
+
+(y-ybar) = (ybark-ybar) + (y-ybark)
+where (y-ybark)
+ conducts analysis of variance on teh collection of absolute deviations
+ abs(y-ytildek); where ytildek = median of group k 
+ 
+```{r}
+LeveneData = abs(Exams4$Grade - medians)
+LeveneData
+```
+
+```{r}
+Levene_aov = aov(LeveneData~Exams4$Student)
+summary(Levene_aov)
+```
+```{r}
+leveneTest(Exams4$Grade, factor(Exams4$Student))
+```
+
+__Levene’s Test for Grades versus Students__
+Ho: variance(barb) = variance2 = variance3 = etc 
+Ha: variancei != variancej; for at least one pair of students (i,j) 
+
+*Conclusion*: There is not statistically significant evidence to suggest that students’ grades have difference variances.
+
+```{r}
+medians=rep(tapply(Exams4$Grade, Exams4$Student,median),each=4) # Each = 4 because we want barbs 4 times, betsy 4 times, etc. 
+LeveneData=abs(Exams4$Grade-medians) #They are lined up perfectly right in this dataset; so all the grades will be subed by each student's median score. 
+LeveneData
+
+Levene_aov = aov(LeveneData~Exams4$Student) # Do we see any sig dif in the subbed median by actual score? 
+#Testing: Build model assume the var are equal in each group and trying to see if we have edv that there are some dif here; same as like anova model, but at var 
+# most of the sum of squares are in resdu, which assum there are equal variance; little are in sumsquares of the model itself (grand variance) 
+# Go in with teh same ideas, but with variances and assume that htey are equal, then the p value is big, we dont have evidence to support Ha; even though the rule of variance not being double another, but the test it didnt show sign
+# Comes down to sample size; we would have a lot of dif to have a sig dif 
+# tehere is dif here, but its not big enough to reject Ho
+summary(Levene_aov)
+
+library(car) 
+leveneTest(Exams4$Grade, Exams4$Student) # It wants grade and student (what we are splitting grade up with); it shouldnt really matter if you facotr it 
+```
+
+
+__Cancer Survival with Ascorbate Supplement __
+- Use this when you have issues with constant variance and how to use transofmraitons to help with that
+
+**INformation about the data:** *In the 1970’s doctors wondered if giving terminal cancer patients a supplement of ascorbate would prolong their lives. They designed an experiment to compare cancer patients who received ascorbate to cancer patients who did not receive the supplement. The result of that experiment was that, in fact, ascorbate did seem to prolong the lives of these patients. But then a second question arose. Was the effect of the ascorbate different when different organs were affected by the cancer? The researchers took a second look at the data. This time they concentrated only on those patients who received the ascorbate and divided the data up by which organ was affected by the cancer. They had 5 different organs represented among the patients (all of whom only had one organ affected): Stomach, bronchus, colon, ovary, and breast. *
+
+- Looking at treatmetn for cancer; is the outcome dife for the type of cancer the people have? 
+
+```{r}
+data("CancerSurvival")
+head(CancerSurvival)
+```
+
+__Cancer Survival with Ascorbate Supplement__
+Test: 
+
+Ho: mu1 = mu2 = ...= muk 
+Ha: Some mui != muj
+
+- Want to see if the avg # days are equal depn on type of cancer or if no dif in treatment vs cancer type 
+```{r}
+Cancermod = aov(Survival~Organ, data=CancerSurvival)
+summary(Cancermod) # Sig evid to say surivial time changes depending on the organ that has cancer 
+
+# THIS IS ASSUME CONDITIONS ARE MET 
+```
+
+__Cancer Survival with Ascorbate Supplement __
+*Check conditions* 
+- See there is a trend in variability increases 
+- The organ that has the lowest survial rate = more compact 
+- as survival rate for organ increase as 
+- clear pattern in plot 
+
+- Normal resiudal s
+ - off because the tails are wonky 
+```{r}
+plot(Cancermod, 1:2)
+```
+
+__Cancer Survival with Ascorbate Supplement __
+Ho: variance1 = variance2=...=variancek
+Ha: Some variancei != variancej
+
+- Looking at visuals of survival by organ 
+```{r}
+boxplot(Survival~Organ, data=CancerSurvival)
+tapply(CancerSurvival$Survival, CancerSurvival$Organ, sd)
+
+leveneTest(CancerSurvival$Survival, CancerSurvival$Organ)
+# Constant variance is a huge issue here 
+
+#Levenetest gives a really small pvalue 
+```
+
+- are these sim by chance or 
+- we have evid to say that the var is dif than the others 
+- we cant really use the results because the conditions aren't good 
+
+**Would a transformation help?** 
+- Yes, if you can make it look more normal then you will be good 
+
+LeveneTest
+Ho: variance1=varaince2=...varicnek
+Ha: some variancei != variancej
+```{r}
+boxplot(log(Survival)~Organ, data=CancerSurvival)
+tapply(log(CancerSurvival$Survival), CancerSurvival$Organ, sd)
+
+leveneTest(log(CancerSurvival$Survival), CancerSurvival$Organ)
+```
+- above looks a lot better 
+- the sd are much closer and they are squished better 
+- the levenetest is also better with teh pvalue is high 
+- now we dont see there is dif 
+- we like higher pvalue in this 
+
+```{r}
+Cancermod_log = aov(log(Survival)~Organ, data=CancerSurvival)
+summary(Cancermod_log)
+```
+
+*Cehck conditions* 
+- not as big of an issue
+- not perfect for QQNorm, but its beter 
+```{r}
+plot(Cancermod_log, 1:2)
+```
+
+```{r}
+TukeyHSD(Cancermod_log) # shows us that Bronchus-Breast and stomach-breast are sig
+```
+
+*Below shows the difference between small level what is "sig" and big sample level what is "sig"* 
+- As sample size increases, if its sig doesn't mean its pracitcal to us 
+- we want ot make sure its true roughly, but we might have practical difference 
+- we dont always use it because it can be sus 
+```{r}
+n=10 # 10 groups, and taking 10 random groups; of 4 groups; and binding them todaya dn making a df; 
+
+#Name the data you randomly call 
+x1 <- rnorm(n)
+x2 <- rnorm(n)
+x3 <- rnorm(n)
+x4 <- rnorm(n)
+
+x = c(rbind(x1, x2, x3, x4))
+data <- data.frame(x)
+
+data$group[        1:n    ] = "A"
+data$group[(  n + 1):(2*n)] = "B"
+data$group[(2*n + 1):(3*n)] = "C"
+data$group[(3*n + 1):(4*n)] = "D"
+
+#Lavene test
+# Should all have the same sd from population; by chance what the vlav test would look like 
+leveneTest(data$x, factor(data$group))
+# Get sds
+tapply(data$x, data$group, sd)
+
+# D is almost double and levne pval = 0.2313
+# If we run a few times, then we eventually get something closer to 0.05
+# Gives idea of the dif that we would need to see for levene test to not like the dat aor say its sig 
+```
+```{r}
+n=400 # 400 groups, and taking 10 random groups; of 4 groups; and binding them todaya dn making a df; 
+
+#Name the data you randomly call 
+x1 <- rnorm(n)
+x2 <- rnorm(n)
+x3 <- rnorm(n)
+x4 <- rnorm(n)
+
+x = c(rbind(x1, x2, x3, x4))
+data <- data.frame(x)
+
+data$group[        1:n    ] = "A"
+data$group[(  n + 1):(2*n)] = "B"
+data$group[(2*n + 1):(3*n)] = "C"
+data$group[(3*n + 1):(4*n)] = "D"
+
+#Lavene test
+# Should all have the same sd from population; by chance what the vlav test would look like 
+leveneTest(data$x, factor(data$group))
+# Get sds
+tapply(data$x, data$group, sd)
+```
+

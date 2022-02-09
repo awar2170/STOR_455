@@ -1,0 +1,235 @@
+---
+title: "Class 28 R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+  pdf_document: default
+---
+
+```{r message=FALSE, warning=FALSE}
+library(Stat2Data)
+library(readr)
+
+GoldenBalls <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/GoldenBalls.csv")
+
+logit = function(B0, B1, x)
+  {
+    exp(B0+B1*x)/(1+exp(B0+B1*x))
+  }
+```
+
+__Checking Linearity__
+Three methods depending on the type of dataset:
+- Datasets with a binary predictor – nothing to check!
+- Datasets with a quantitative predictor with many response values for each predictor
+- Datasets with a quantitative predictor with many values for the predictor but few response values for each predictor value. 
+
+*Example Golf Putts* 
+We looked at the log odds formula 
+there wre no big deviations 
+
+what about the Datsets with binary predicotrs? We are going to look at golden balls; split or steal the money 
+how likeyly are they to split or steal based on teh age of teh contestant?
+```{r}
+head(GoldenBalls)
+table(GoldenBalls$Split, GoldenBalls$Over40)
+```
+
+Claim: There is a difference in the proportion of people who would split or steal based on their age.
+
+He table above shows the table for if the preson is over40 and has split or not; so row, column; where row = if they split and coloumn = age over or below 40.  over forty = 1; under = 0 
+
+we see that there is a low p value below that says that we have evidence to say there is a realtionship between age and their saying yes or no to steal 
+
+then we pull out teh coeffs. we plot the raw data with some jitter, but we dont think tis super needed right now. 
+
+if we want to make a logit plot,then we want to find out where the table is, why do we table 2 and coloumn; p-hat will give you the samplel porp[tion, he is just pulling from the table 
+
+then goldenball odds is just loged 
+
+__Golden Balls: Logistic Regression__
+```{r}
+GBmod = glm(Split~Over40, data=GoldenBalls, family=binomial)
+# Make logistic model
+summary(GBmod)
+# See summary of logistic mdoel 
+
+B0 = summary(GBmod)$coef[1] # Pull out intercept
+B1 = summary(GBmod)$coef[2] # Pull out slope
+
+#Plot the GBMod data
+plot(jitter(Split,amount=0.1)~Over40,data=GoldenBalls, xlim=c(-.2, 1.2), ylim=c(-.2, 1.2) )
+# Plot the GBMod
+curve(logit(B0, B1, x),add=TRUE, col="red")
+```
+
+```{r}
+GoldenBalls_table=table(GoldenBalls$Split, GoldenBalls$Over40)
+GoldenBalls_p_hat=as.vector(GoldenBalls_table[2,]/colSums(GoldenBalls_table))
+GoldenBalls_logodds_p_hat = log(GoldenBalls_p_hat/(1-GoldenBalls_p_hat))
+
+plot(GoldenBalls_logodds_p_hat~c(0,1))
+abline(B0, B1, col="red")
+```
+
+__Quantitative predictor: Few response values for each predictor__
+- This process breaks down if there are not many values of the response, but the previous process can be mimicked by manipulating the data first.
+
+- We can manipulate the data by:
+1. Slicing the x-axis into intervals.
+2. Compute the average x-value and empirical logit foreach slice
+3. Plot the values as before
+
+Medical School Acceptance Dataset:
+Is GPA a useful predictor for acceptance to medical school?
+
+```{r}
+data("MedGPA")
+head(MedGPA)
+```
+WE're hoping that therea re different cases for the low, medium and high; if they didn't follow the logit curve, ten they would be weird and you cant use logit 
+
+below we are predicting the mdoel with acceptabnce and gpa 
+
+```{r}
+MedGPA.glm = glm(Acceptance~GPA, data=MedGPA, family = binomial)
+
+B0 = summary(MedGPA.glm)$coef[1]
+B1 = summary(MedGPA.glm)$coef[2]
+
+plot(jitter(Acceptance,amount=0.1)~GPA,data=MedGPA)
+curve(logit(B0, B1, x),add=TRUE, col="red")
+```
+It makes sense that teh logit model fits here, the ost people who get in have high gpa 
+it looks like its a jittered acceptabnce rate 
+we dont know other things about these people, there are probablyother reasons they arent getting or they gota ccepted into med school 
+
+below we are shorting based on how good their gpa is, this is just ordering it by gpa; so its going to look at the levels
+__Create a new dataframe with the predictor sorted smallest to largest__
+```{r}
+sorted.MedGPA = MedGPA[order(MedGPA$GPA),]
+GPA = sorted.MedGPA$GPA
+Acceptance = sorted.MedGPA$Acceptance
+
+#we want to pull out GPA so we can just work with that; so we do gpa = sorted.medgpa$gpa 
+#then we also want to know if thery got acepted, so see teh Acceptance object in R 
+
+# Select a number of “slices” or groups for the data and find the mean value of the predictor for each slice
+# WE slect slices so we can look at the mean of the groups 
+# We want to see if our model follows the means of the groups well 
+
+groups = 5
+group.size = 11
+
+GPA.means = 0
+Acceptance.sums = 0
+
+for(i in 1:groups){
+  GPA.means[i] = mean(
+    GPA[((group.size*i)-(group.size-1)):(group.size*i)])
+  }
+
+GPA.means
+```
+above does a loop where it takes teh mean of teh first 11 elements, tehn it's teh second 11 elements; so its not easy to read this, there is a nicer way to do this: 
+```{r}
+library(TTR)
+runMean(GPA, 11)
+```
+the above will do the same thing as teh loop, but it's from the TTR package this gives us all of the 11, we jsut want the 11th, 22th, 33rd, and 44th values; how do we get that? look below 
+
+```{r}
+runMean(GPA, 11)[seq(11,length(GPA),11)]
+```
+THe above gives you what we want 
+
+Accepted sums 
+__Find the number of acceptances for each slice__
+```{r}
+for(i in 1:groups){
+  Acceptance.sums[i] =sum( 
+    Acceptance[((group.size*i)-(group.size-1)):(group.size*i)])
+  }
+
+Acceptance.sums
+
+# “Fudge” the proportions slightly and find the log of the predicted odds
+# Why “fudge”?
+# Proportions of 0 and 1 cause issues.
+
+Acceptance.prop.adj = (Acceptance.sums +0.5)/(group.size+1)
+
+logodd.Acceptance.adj = log(Acceptance.prop.adj/(1-Acceptance.prop.adj))
+
+# Plot the logodds of the adjusted proportions by the means of the predictor variables and a linear model
+# ASk self if the data ppears linear and if the group numbers matter (YES! THEY DO)
+plot(logodd.Acceptance.adj~GPA.means)
+abline(B0,B1)
+```
+above does it in loop format, but you can do it better with teh ttr package 
+
+```{r}
+acceptance.sums = runSum(Acceptance, 11)
+acceptance.sums
+```
+THis is saysing tha ttherea re not enought o give me an 11 people sum; the above gives you a running cumumlaitve sum for 11, then 12, then 13 then etc 
+
+so to get what we want do below: 
+```{r}
+acceptance.sums = runSum(Acceptance, 11)[seq(11,length(GPA), 11)]
+acceptance.sums
+```
+
+we need to fudge so we tell R to nto give us exactly 0 and not eactly 1 
+we get log of 0 andlog of 1 aer issues; 
+
+we are just goint o add 0.5 to the sums and divivde by the group size sot aht we never get exactly 1 or a little less than that. 
+
+look at teh group size and numbers way above. 
+
+WE're a bit lost because he deviated adn I'm not paying as much attention as I could 
+
+```{r}
+acceptance.propo.ad = (Acceptance.sums + 0.5)/(group.size + 1)
+acceptance.propo.ad
+
+logodd.accept.ad = log(acceptance.propo.ad/(1-acceptance.propo.ad))
+logodd.accept.ad
+```
+below, we want to make sure we load stat2data 
+
+we give it teh raw data, so that it does the thing taht we want itt to; we want to group it by 5, but i dont know why 
+
+we choose 5 because that's how we split teh data earlier in the code; 
+
+this will give you the same plot, but we the othere xtra work in teh past; its a fsater way to do the thing 
+
+there may be issues with this on teh data; if you try and slice the data ti migth overlap and cause errors; certain groupsing might work differently for different data; it defpending on teh datatset 
+
+you just haev to ttiral and error it 
+__Check linear conditions__ 
+
+```{r}
+emplogitplot1(Acceptance~GPA, data=MedGPA, ngroups=5)
+```
+this will check the groups of the other names; this is how you test other nimber grouping, which is useful 
+
+these arent residuals, but we think about them that way; if tehre are different patterns, we could try transformations; the logit plot works teh same as teh full things we did in the other classes
+__This checks different grouping types__ 
+```{r}
+for(j in 5:11){emplogitplot1(Acceptance~GPA, data=MedGPA, ngroups=j, main=j)}
+```
+
+below shows you a shortcut on how to do the long thing int eh short; with teh logitplot function
+
+ngroups = all shows that all possible predictor wvalue and will make teh own group 
+
+that doesnt work for medgpa data beause the grouping are different; there are vary few outcomes for each logodd for med gpa and it doesnt tell us much aout ht eoutcomes 
+
+the goldenballgraph is less exciting because it's a graph with a thing between two lines 
+```{r}
+data("Putts1")
+emplogitplot1(Made~Length, data=Putts1, ngroups="all")
+
+emplogitplot1(Split~Over40, data=GoldenBalls, ngroups="all")
+```

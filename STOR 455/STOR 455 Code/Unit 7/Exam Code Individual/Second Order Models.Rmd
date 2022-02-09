@@ -1,0 +1,32 @@
+---
+title: "R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+---
+
+This is the "Iris" dataset. Originally published at UCI Machine Learning Repository: Iris Data Set, this small dataset from 1936 is often used for testing out machine learning algorithms and visualizations (for example, Scatter Plot). Each row of the table represents an iris flower, including its species and dimensions of its botanical parts, sepal and petal, in centimeters.
+
+```{r}
+Iris = readr::read_csv(
+  "https://gist.githubusercontent.com/curran/a08a1080b88344b0c8a7/raw/0e7a9b0a5d22642a06d3d5b9bcbad9890c8ee534/iris.csv",    show_col_types = FALSE)
+```
+
+Q10: Fit a complete second order model for predicting a sepal_length based on petal_length and petal_width and examine the residuals. Examine the conditions for your model. Discuss any issues that you see in the conditions.
+
+```{r}
+Iris10 = lm(sepal_length~petal_length + I(petal_length^2) + petal_width + I(petal_width^2) 
+            + petal_length*petal_width, data = Iris)
+summary(Iris10)
+
+plot(Iris10)
+```
+
+Overall, the residuals are constantly distributed with no obvious pattern. When fitted value is equal to 5.0, the residuals seem to be more compact. 
+
+Linear condition is satisfied since the fitted line is generally linear. 
+
+According to the qqplot, the points are generally lying on the fitted line, indicating satisfied normality condition. 
+
+
+

@@ -1,0 +1,23 @@
+---
+title: 'STOR 455 Homework #9 Part 1 #16'
+output:
+  word_document: default
+  html_notebook: default
+---
+
+```{r}
+library(readr)
+Sleep <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/SleepStudy.csv")
+```
+
+# Tests of significance for a model (single or multiple predictors)
+2. Construct a logistic model to predict _Stress_ using _WeekdaySleep_ and _WeekendSleep_ as predictor variables. Perform a hypothesis test to determine if there is significant evidence of a relationship between _Stress_, _WeekdaySleep_, and _WeekendSleep_. Cite your hypotheses, p-value, and conclusion in context.
+
+H0: B1 = 0 
+HA: B1 != 0 
+The p-value estimated p-value for WeekdaySleep is 0.362 and the p-value for WeekendSleep is 0.186. This concludes that both tests are statistically insignificant at any level less than or equal to 0.1, because their p-value are greater than 0.1, and you should fail to reject the null. 
+```{r}
+mod2 = glm(factor(Stress)~WeekdaySleep+WeekendSleep, data = Sleep, family = binomial)
+summary(mod2)
+```
+I think that unless specifically stated, we tend to use the 95 percent confidence interval which means that alpha, or the p-value to determine whether or not the null should be rejected would be .05. This would mean that the test is not statistically significant. I think that for the interpretation it could be put into context, like the slope would be zero or non-zero. I also think that the conclusion would need to be in context by saying that the slope for the logit model predicting stress by weekend and weekday sleep is zero, and that there is not statistically significant evidence from the model to say that there is a non-zero slope for stress with those variables. - Group 11: Haley Hawkins, Rafel Al Ghrary, Alyssa Warnock, Gloria Su. 

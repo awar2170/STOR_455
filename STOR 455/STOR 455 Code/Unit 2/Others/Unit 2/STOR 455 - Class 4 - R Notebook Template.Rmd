@@ -1,0 +1,61 @@
+---
+title: "STOR 455 Class 4 R Notebook"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+```{r message=FALSE, warning=FALSE}
+# message=FALSE, warning=FALSE supress warnings and messages from appearing in knitted html
+
+library(readr)
+library(Stat2Data)
+
+Planets <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data//Planets.csv")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+log(Year) =  -0.0034399 + 1.5020611*log(Distance)
+
+Year = e ^(-0.0034399 + 1.5020611(log(Distance))
+
+Year = e ^(-0.0034399) e ^((1.5020611)(log(Distance))
+
+Year = e ^(-0.0034399) e ^(log(Distance ^1.5020611))
+
+Year = e ^(-0.0034399) (Distance^1.5020611)
+
+

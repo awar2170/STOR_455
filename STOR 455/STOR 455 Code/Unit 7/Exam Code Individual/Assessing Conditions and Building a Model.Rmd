@@ -1,0 +1,33 @@
+---
+title: "Building a Model and Assessing Conditions"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+library(readr)
+
+Sleep <- read.csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/SleepStudy.csv")
+
+```
+
+
+1. Build a linear model predicting GPA based on average hours of sleep during weekdays. Comment on how well your data appear to fit the conditions for a linear model. 
+
+Looking at original plot of the data with the linear model, the data does not seem to follow a linear pattern as described by the model line. The residuals vs. fitted plot shows a relatively linear pattern (looking at the plotted line as compared to the origin line) and the variance seems relatively constant across the residual data, with possible slight tapering in towards the right-hand side. The normal Q-Q line shows some skew on the left hand side of the plot, showing possible deviation from a normal distribution pattern in the residuals. Left-skew is also observed in the histogram for the residual data, also implying a deviation from normal distribution. 
+
+```{r}
+SleepMod = lm(GPA~WeekdaySleep, data=Sleep)
+plot(GPA~WeekdaySleep, data=Sleep)
+abline(SleepMod)
+
+plot(SleepMod, 1:2)
+hist(SleepMod$residuals)
+```

@@ -1,0 +1,241 @@
+---
+title: "STOR 455 Class 7 R Notebook"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r warning=FALSE, message=FALSE}
+library(Stat2Data)
+
+data("LongJumpOlympics2016")
+data("PalmBeach")
+```
+__Types of “Unusual” Points in SLM__
+-**Outlier:** A data point that is far from the regression line.
+-**Influential point:** A data point that has a large effect on the regression fit. 
+
+__Detecting Unusual Cases - Overview__
+1. Compute residuals
+	- “raw”, standardized, studentized
+2. Plots of residuals (or std. residuals)
+	- Boxplot, scatterplot, normal plot
+3. Leverage
+	- Unusual values for the predictors
+4. Cook’s distance
+	- Cases with large influence
+
+*Below:* We are making the same model as last time, in class 06
+```{r}
+GoldModel=lm(Gold~Year, data=LongJumpOlympics2016)
+
+plot(Gold~Year, data=LongJumpOlympics2016)
+abline(GoldModel)
+points(LongJumpOlympics2016$Year[16], LongJumpOlympics2016$Gold[16], col="red", pch=16)
+# Points just stands out a certain point 
+# We need to give it the x and y coordinates, the the color and style 
+
+summary(GoldModel) # The 0.2595 meaters is the standard error of the residual
+```
+__Standardized Residuals__
+- Roughly equal to zscore 
+- For residuals:  mean=0 and std. dev. ≈𝜎 ̂_𝜀
+- Standardized Residual about = (yi-yhat)/std
+- Look for values: beyond +/-2 (mild) or beyond +/-3
+- **Definition:** The standardized residuals are:
+-- std. resi = ((yi-yhat)/(stdsqrt(1-hi))); where hi = leverage 
+
+*SQRT 1=leverae*
+- It wont tell us that it has influence, but it will tell us the potential for influence 
+- 
+```{r}
+StanResidEst = GoldModel$resid/summary(GoldModel)$sigma # Pulls out the standard error of the residuals 
+
+StanResidEst - rstandard(GoldModel) # What this leverage is 
+```
+**What is this leverage?** 
+- Depending on where the value is, depending ont eh x coord, determines the leverage 
+- Things that follow the mean along the predictor because it doesn't have a lot of leverage 
+- If it's twoards the right or left of end the range of values, then even a small, very little values could have a lot fo influence on the model 
+- Think of leverage as a seesaw.
+-- if you have a long seesaw on one side, but short on the other side, it doesn't matter who is on the short side, they won't have as much leverage. 
+-- If you have a long seesaw on the other side, then if it's an adult or child may impact the stronger amount of leverage.  Think of if it was an adult of child by how far up or down the y axis it goes.  If it's an adult, it's oging to be a bigger different from the axis, but if it's a child it's going to be smaller and have less influence. 
+- **Bottom line** A lower weight, if its further away fromt eh balance point, can have more effect on the model than a higher weight that is closer to the balance point 
+-- **The balance point is the mean** 
+
+```{r}
+StanResid = GoldModel$resid/(summary(GoldModel)$sigma * sqrt(1 - hatvalues(GoldModel)))
+
+StanResid - rstandard(GoldModel)
+```
+__Studentized Residuals__
+- If we took that point out of the model, how does that impact the variability of the residuals? 
+- Definition: The studentized residuals are: stud.resi  = *same as standardized, but without the one point*
+- If th epoint had a lot of influence on the varibaility, then the studentized value would be much bigger than the standarized value 
+
+- **The more different the standardized vs studentized values are, the more influence that point has on the model** 
+
+__Typical Leverage__ 
+- **For one point:**
+- For a simple linear model: hi = (1/n)+(((xi-xbar)^2)/sum(xi-xbar)^2)
+- **For all leverage in a model:** 
+- sum(leverage) = sum(1/n) + ((sum(xi-xbar)^2)/sum(xi-xbar)^2) = 1+1 = 2
+- The sum of the leverages of all of the points = 2 
+-- this is usefulbecause we can think of what a typical leverage value is 
+-- If all teh leverages are 2, then 2/n = give you what the mean leverage is 
+- *Look for:* 
+-- leverage > 2(2/n)
+-- leverage hi > 3(2/n)
+
+*Notes* 
+- How different is this point from the average predictive value in compraision to all those other values 
+- Xi - xbar = predictor where the xi = a specific predictor value, and xbar = the mean of the values 
+- Xi-xbar squared = in a horizontal way, how different is that point regardless if above or below mean 
+- The sum(xi-xbar)^2 = how different is this point proportionally to the rest of the data 
+- scared accoriding the the sample of the data with the 1/n
+- One point will haev mor einfluence if the data is small 
+- values that are double or triple the average leverage are the ones we have to worry about because they may have influence in the model 
+-- **We are still talking about potenital here because we are only looking at the predictors**
+--Because we are only looking at years in this model, vs the entire context of the data 
+--It tells us the data points we should look at more closely 
+
+```{r}
+# average leverage : 2/28 
+# IF poitns are bigger than this, might have a lot of influence on the model 
+
+2*(2/28)
+3*(2/28)
+# Above are just the cut off points for influence, we don't really care too much about them 
+
+# The below code will show the ordered data because of the way the data is organized in the dataset 
+# We can see how the leverages are going to be similar there where the points that are small, very different for the mean, they wil start with a higher leverage, and by the time we get the middle values, its going down to a leverage of nearly zero, 
+# Get further waya from average year, we will get higher leverages reported 
+
+hatvalues(GoldModel)
+# Iif you look at the 16th value, it has a leverage of 0.038; based onteh creitera foor what tis a big lleverage value, this point doesn't appear to be high leverage 
+# the 16the point has to be a REALLY big outlier for it to have influence, because its potential to have influence is low
+```
+
+**Wanted to look at the leverages better** 
+- Sort them to have a better idea of where the potenitals are to gave influence 
+- Sort the hat values 
+- sort will by default go from acending order/increasing order
+- mostly interested in the biggest leverages 
+- Want to change it to decreasing = TRUE so we see the biggest leverages first instead of the smallest ones first 
+
+```{r}
+2*(2/28)
+3*(2/28)
+
+sort(hatvalues(GoldModel), decreasing = TRUE)
+# The one with the biggests index is 0.1307, even the smallest and biggest predicotr value aresnt so far from teh mean predictor compared to the  other values that hey have potiental for influence. 
+# They would need to be big outliers to have influence 
+# If we had more datapoints, then we could also just look at some of the values 
+# The head function can be added to the sorting hatvalues 
+```
+
+```{r}
+ElectionModel=lm(Buchanan~Bush,data=PalmBeach)
+plot(Buchanan~Bush,data=PalmBeach)
+abline(ElectionModel)
+points(PalmBeach$Bush[50], PalmBeach$Buchanan[50], col="red", pch=16)
+# Red is palm beach 
+```
+
+```{r}
+#Average leverage = 2/67
+
+#Potiential for influence 
+2*(2/67) 
+3*(2/67)
+head(sort(hatvalues(ElectionModel), decreasing=TRUE), n=10)
+# We see that point 13 probably has potiential leverage 
+
+# We want to see the first 6 with the highest potienital for influence so we can look at them closer
+# We want all columns, so just leave it with the ,
+# This tells us teh counties in the order of teh output, not the leverages though 
+# Want to add the leverages to it though 
+PalmBeach[c(6,13,16,29,50,52),]
+
+# Defines new variable inside of the dataframe
+PalmBeach$Leverage = hatvalues(ElectionModel)
+# This is putting the leverage into the dataframe 
+
+# Now run this again: PalmBeach[c(6,13,16,29,50,52),]
+PalmBeach[c(6,13,16,29,50,52),]
+# This will now include the palmbeach levearge 
+```
+*Want to visualize the impact dave county has vs palm beach* - Dave has a smaller outlier, it's leverage is high so it could havea  similar impact on the model 
+
+```{r}
+plot(Buchanan~Bush,data=PalmBeach)
+abline(ElectionModel, col="blue")
+# The above is the model we have now 
+
+# Below, make new model with no palmbeach 
+NoPalmBeach=subset(PalmBeach,County!="PALM BEACH")
+ElectionModel_noPB=lm(Buchanan~Bush,data=NoPalmBeach)
+abline(ElectionModel_noPB, col="red")
+
+# Below, make a new model with no dade
+NoDade = subset(PalmBeach,County!="DADE")
+ElectionModel_noD=lm(Buchanan~Bush,data=NoDade)
+abline(ElectionModel_noD, col="green")
+
+# Then we compare the lines that we have written to see how the slope is different. 
+# Red = no palm beach 
+# Green = no dade 
+# Blue = with both 
+# The change in slope appears the same, so it tells me that the impact these datapoint shave on our model are about similar 
+# Even though one is a bigger outlier, it has a lower potenital to have infleunce, 
+# The other is smaller outlier, but has a high leverage, it has abotu the same typ eof influence 
+```
+*NOtes* 
+- FOr high leverage, doesnt need to be a big outlier to have an impact on the model 
+- for high outlier, it doesnt have to have that much leverage 
+- We are looking at cook's distance, which combines teh two above things and quantify the value instead of the other vlaues 
+- Cook's will tell you if the pointhas influence on the model 
+- Brings in stanard resid; the leverage of the point; and how many predictors there are 
+- Cooks' distance is  acombien of leverage, student, adn standard 
+
+__Cook’s Distance__
+- How much would the fit change if one data value were omitted?
+- Di increases with either poor fit (std.resi) and high leverage (hi). 
+1. Compare to other Di’s.
+2. Study any case with Di > 0.5; worry if Di > 1.0.
+
+*Cook's Di:* = (((std.resi)^2)/(k+1))*(hi/(1-hi))
+
+```{r}
+head(sort(cooks.distance(ElectionModel), decreasing=TRUE), n=5)
+# Two ar emuch bigger adn the rest of smaller, those two points rae the main that are havign influence on our model 
+# 50 = =palm beach 
+# 13 = Dade 
+# They're not exactly the same, but have about teh same impact ont eh model we are making 
+
+#We've seen Cook's distance between with teh plots for the model 
+plot(ElectionModel,5)
+# Will show you what point shave leverage 
+# LOOK AT WHAT THE THING IS 
+# HOw big of an outlier is this value 
+# Mode values have standardiex values within +/- 2
+# Th etwo that have big differences are point 50 and 13
+# Point 50 = std score of 8 
+# Point 13, Dade, has a -3.0 std value; but it is high leverage 
+# Points low leverage = closer to the left side of the graph 
+# Further right = different data, more leverage 
+
+# O.5
+# Gives us a cook's distance of 0.5
+# OUtler line: 1 = cook's distance of 1 
+# Above these lines, we can claim that by putting the leverage and output together it's having an influence on the model 
+# POint 50, has small leverage, but a big outlier that it's goig outside of the curve and having influence on the model 
+# Dade county has a huge leverage, but it's not an outlier, but it's enough to put it outside of the curve and have an high impact on teh model 
+
+# Think about: WHY DO THESE POINTS HAVE IMPACT ON THE MDOEL> 
+# DO WE WANT THEM TO IMPACT THE MODEL? 
+# sometimes might not want to inlcude some things int eh model, but it's good to look at it anyways so you know what is going on 
+abline(v = 4/67, col="blue", lty=3)
+abline(v = 6/67, col="blue", lty=3)
+```

@@ -1,0 +1,260 @@
+---
+title: "STOR 455 Class 6 R Notebook"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+```{r message=FALSE, warning=FALSE}
+# message=FALSE, warning=FALSE suppress warnings and messages from appearing in knitted files
+
+library(readr)
+library(Stat2Data)
+```
+
+__Single Quantitative Predictor Model__ 
+Notation:   
+- Y = Response variable
+- X = Predictor variable
+
+Assume (for now) that both Y and X are quantitative variables.
+
+__Simple Linear Model__
+X = Single quantitative predictor
+Y = Quantitative response
+
+Find a line that best summarizes the trend in the data.
+
+Y = Bo + B1X + E
+Response = intercept + Slope*Predictor + Random Error 
+
+__Simple Linear Model- Conditions__
+**Model:**
+1.Linearity: The means for Y vary as a linear function of X.
+**Error:**
+2.Zero Mean: The distribution of the errors is centered at zero.
+3.Constant variance: The variance for Y is the same at each X. (Homoscedasticity)
+4.Independence: No relationships among errors.
+5.Normality:
+Residuals are normally distributed
+(sometimes) At each X, the Y’s follow a normal distribution.
+
+*Look at* What potent do these points have to influence our model? 
+
+__Types of “Unusual” Points in SLM__
+- Two Types
+- **Outlier:** A data point that is far from the regression line.
+--Points really above or below the regression line 
+-- Doesn't always have a lot of influence on the model 
+-- Could be big enough that it has influence, but mostly depends on the value of the predictor 
+-- Data points that are closer to the edges of the predictor value (high or low) have a higher chance of having inlfuence in our model 
+- **Influential point:** A data point that has a large effect on the regression fit. 
+-- can come from many things 
+
+__Detecting Unusual Cases - Overview__
+1. Compute residuals
+	“raw”, standardized, studentized
+2. Plots of residuals (or std. residuals)
+	Boxplot, scatterplot, normal plot
+3. Leverage
+	Unusual values for the predictors
+4. Cook’s distance
+	Cases with large influence
+
+*This notebook covers the first two from above*
+- leverage = the potiential for a certain value to have infleuence on the model 
+- Cook's distance combines a lot of the things to do some calculations for us 
+
+__Raw Residual__
+ei = yi - yhati 
+*How can we tell if a residual is unusually large? *
+CONTEXT! 
+Example:
+	Y = GPA      ei = 2.6    is very large
+	Y = SAT       ei = 2.6    is very small
+
+
+__Example: Men’s Olympic Long Jump__
+```{r}
+data("LongJumpOlympics2016")
+head(LongJumpOlympics2016)
+```
+
+```{r}
+plot(Gold~Year, data=LongJumpOlympics2016) # Predict longjump distance by year 
+GoldModel = lm(Gold~Year, data=LongJumpOlympics2016)
+abline(GoldModel) # Draw the line we made onto the plot
+
+plot(GoldModel, 1:2) # To see the residual models, we see that there is one really big outlier
+# Linearity looks like an issue because of the fitted plot.  The red line goes down; the prediction curves 
+# Point 16 is our outlier 
+# R tells us which row this is because it looks like an ourlier to R 
+# Looking at the normal QQ Plot, normal might be an issue 
+# Constant variance doesn't appear to be an issue 
+summary(GoldModel)
+# Look at estimate of the year: For every 1 year increase than that's how many meters we think the winning long distance jump is going to increase as well 
+# Every 4 years it looks like its increasing by 5 cms
+```
+**What if we wanted to see what the data looked like without the outlier?** 
+```{r}
+boxplot(GoldModel$residuals)
+# Outliers are more than 1.5 IQR’s beyond the Quartiles
+# Will give idea of how different that one value is from the others 
+
+# Wee see there is an outlier, but how much of an outlier is this? 
+# LOOK AT STANDARDIZED VALUES OF RESIDUALS INSTEAD
+
+max(GoldModel$residuals)
+which.max(GoldModel$residuals)
+```
+__Standardized Residuals__
+- HOW TO TELL HOW MUCH OF AN OUTLIER THIS IS 
+- ROughly equal to the acutal - predicted/stdeve; basically a zscore, but not exactly 
+
+- Fact:  If X has mean mu and std. dev, then (𝑋−𝜇)/𝜎 has mean 0 and std. dev.=1.
+- For residuals:  mean=0 and std. dev. of errors 
+
+- Standardized Residuals about equals (yi - yhat)/stad dev of the population errors 
+- Look for values beyond +/-2 (mild) or beyond +/-3 
+
+- Once you have fit   mymodel=lm(Y~X)
+- Use:     rstandard(mymodel) 
+
+*notes* 
+- It will give us a thing centered at zero +/- unites; and that's how many std they are away from teh average 
+- THink about this as: 
+- Once you are +/- 2 std away and its normally dist, then you're in teh outer 5% of the data, so that's starting to eb an outlier 
+- IF you're +/-3 away, then you're into the .05 of the data and outliers, so it's pretty extreme 
+
+*Below* 
+- If we look at the standaized residual, it's 2.96. so it's 2.96 std above the line, which is an outlier 
+```{r}
+rstandard(GoldModel) # Put the model in 
+# Will show standardized residuals 
+# Taht's great when we have a small dataset, but if its not small, then don't use the above code 
+
+which.max(GoldModel$residuals)
+
+rstandard(GoldModel)[16] # This will target the key point we ar elooking at 
+```
+**We now know it's an outlier, BUT WE DONT KNOW IF IT HAS ANY INFLUENCE ON TEH MODEL YET** 
+- Can plot the rstand of the residuals by the fitted values 
+- The plot is going to look identical to the others, other htan the axies, so but it's a different measure of scale 
+- How much infleunce is that really having? 
+
+```{r}
+plot(rstandard(GoldModel)~GoldModel$fitted.values)
+abline(0,0)
+```
+**THING ABOUT THE STUDNTIZED RESIDUALS TO SEE HOW MUCH INFLUENCE SOMETHING HAS**
+- Standard = Outliers 
+- Student = Influence (uses a different standard deviation)
+
+__Studentized Residual__
+- Takes the single data out of the dataset, make a new regression line and get a new std of resid and seeing how far away the new line is from the outlier point in terms of the new standard residuals 
+- If we take out an oulter, the std of the residuals is going to go down because we are removing an extreme case, so now its going to take more std to get to the outlier, and its going to give us a value that is bigger 
+- When we see a studentized residual that is larger thant the stadnard residual, then it tells us that by removing this point, we are reallying changing the varibaility of the model and condenseing it more. 
+- uses a different standard deviation than standariza
+
+- **Concern:** An unusual value may exert great influence on the fit
+-  Its residual might be underestimated because the model “moves” a  lot to fit it
+and/or
+-  The standard error of regression may be inflated due to the outlier error
+
+- **Studentize:** Fit the model without that case, then find new 𝑦−𝑦hat and 𝜎_𝜀 (of the population) to standardize. (R does this for every point)
+
+__Influence__
+The effect of a single data point on the regression line depends on:
+- how well it matches the “trend” of  the rest of the points
+- how “unusual” is its predictor value
+
+```{r}
+plot(rstudent(GoldModel)~GoldModel$fitted.values)
+abline(0,0)
+
+rstudent(GoldModel)[16]
+# When we took the outlier from teh thing, its more away, which is bigger 
+# There is some kind of influence here, but is it really noticable influence? 
+```
+
+```{r}
+# plot(IceModel3) # From the previous notes 
+
+# max(rstandard(IceModel3))
+# max(rstudent(IceModel3))
+# When we look at the values, themore different they are the mode influence they have in the model 
+# The more close they are, then they have less influence on the model 
+# No real bounds on what is a big or little influence on set number ot look at 
+```
+
+__Dataset: PalmBeach__
+- County vote counts in Florida (n=67) for George Bush and Pat Buchanan in 2000.
+- Model:  Use Bush votes to predict Buchanan votes. 
+
+```{r}
+data(PalmBeach)
+head(PalmBeach)
+
+ElectionModel = lm(Buchanan~Bush, data=PalmBeach)
+# Bush = republican 
+# Buchana - the other person 
+
+plot(Buchanan~Bush, data=PalmBeach) # Look at the residuals and check the conditions 
+abline(ElectionModel)
+```
+__Example: Palm Beach Butterfly Ballot__ 
+- Palm Beach is the outlier 
+
+```{r}
+plot(ElectionModel, 1:2)
+
+plot(rstudent(ElectionModel)~ElectionModel$fitted.values)
+abline(0,0)
+
+plot(rstandard(ElectionModel)~ElectionModel$fitted.values)
+abline(0,0)
+
+boxplot(ElectionModel$residuals, horizontal=TRUE) # Look at the outliers, there looks like ther eare a lot of outliers, but it's okay we are only looking at one of them 
+```
+
+__What to do with an extreme residual?__
+- Try a transformation (Loging works really well, log(Data))
+- Redo the analysis with the point omitted
+
+*Below, we redo with the point omitted* 
+```{r}
+newdata = subset(PalmBeach, County!="PALM BEACH")
+
+ElectionModel_noPB = lm(Buchanan~Bush, data=newdata)
+
+summary(ElectionModel)
+summary(ElectionModel_noPB)
+# Compare teh summary of old vs new model 
+# We see that the new model residuals std error is really high; it s std value 
+# The origanl value is a lot smaller for std
+```
+
+__Model with/without Palm Beach__
+- If compare the rstudent and rstandard of the with palm beach, we see that there is a really big jump between tehse numbers; tells us we have a value that is taking the whole regression and dragging it 
+- So all our other predictiosn are going to be higher becuase of this vlaue 
+
+- If we look at the intercept and slope 
+- the slope is more dramatic when we take out the point, with the intercept goes down 
+- the residual standarad errors are very different between teh two 
+- the linearirity is really good without the palm beach 
+- the normal residuals look pretty bad when you take out palm beach 
+```{r}
+plot(ElectionModel_noPB, 1:2)
+
+plot(rstudent(ElectionModel_noPB)~ElectionModel_noPB$fitted.values)
+abline(0,0)
+
+plot(rstandard(ElectionModel_noPB)~ElectionModel_noPB$fitted.values)
+abline(0,0)
+
+boxplot(ElectionModel_noPB$residuals, horizontal=TRUE)
+```
+
+__BE careful with the student and standard__ 
+- look at how differen tbetween student and standard, you cna't just know based on the one value 

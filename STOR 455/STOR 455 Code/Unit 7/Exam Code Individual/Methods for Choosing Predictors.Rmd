@@ -1,0 +1,63 @@
+---
+title: 'R Notebook Group Project 3 - Topic 7: Methods for Choosing Predictors'
+output:
+  word_document: default
+  html_notebook: default
+  pdf_document: default
+---
+
+```{r}
+library(readr)
+
+SleepData = read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/SleepStudy.csv")
+
+head(SleepData)
+library(leaps)
+
+source("https://raw.githubusercontent.com/JA-McLean/STOR455/master/scripts/ShowSubsets.R")
+```
+
+Find the best multiple regression model predicting GPA using the following four method selections: all subsets, forward regression, backward regression, and stepwise regression. 
+
+(1) All Subsets Method
+```{r}
+all = regsubsets(GPA~., data=SleepData)
+ShowSubsets(all)
+
+ShowSubsetsModel = lm(GPA~Drinks+StressScore, data=SleepData)
+summary(ShowSubsetsModel)
+```
+
+
+(2) Forwards Selection Method
+```{r}
+full = lm(GPA~., data=SleepData)
+none = lm(GPA~1, data=SleepData)
+MSE  = (summary(full)$sigma)^2
+
+step(none, scope=list(upper=full), scale=MSE, direction="forward", trace=FALSE)
+
+ForwardModel = lm(GPA ~ Drinks + CognitionZscore + StressScore + DASScore + 
+    ClassYear + WeekdayRise, data = SleepData)
+summary(ForwardModel)
+```
+
+(3) Backwards Regression Method
+```{r}
+step(full, scale=MSE, trace=FALSE)
+
+BackwardsModel = lm(GPA ~ Gender + ClassYear + CognitionZscore + DepressionScore + 
+    AnxietyScore + StressScore + Drinks + WeekdaySleep, data = SleepData)
+summary(BackwardsModel)
+```
+
+
+(4) Stepwise Regression Method
+```{r}
+step(none, scope=list(upper=full), scale=MSE, trace=FALSE)
+
+StepwiseModel = lm(GPA ~ Drinks + CognitionZscore + StressScore + DASScore + 
+    ClassYear + WeekdayRise, data = SleepData)
+summary(StepwiseModel)
+```
+

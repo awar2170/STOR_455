@@ -1,0 +1,167 @@
+---
+title: "STOR 455 Class 7 R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r warning=FALSE, message=FALSE}
+library(Stat2Data)
+
+data("LongJumpOlympics2016")
+data("PalmBeach")
+```
+
+**Unusual Points** 
+Detecting Overview: 
+1. COmpute Residuals (raw, standardized or studentized; if we took that point out of model how does that effect the residuals - we can then see if that point had a lot of influence on the variability the studentized value would be different than teh standardized value)
+2. Plot of resiudals, or std. residuals (box plot, scatterplot, norm plot)
+3. Leverage 
+4. COok's distance 
+
+```{r}
+mod1 <- lm(Gold~Year, LongJumpOlympics2016)
+
+plot(Gold~Year, LongJumpOlympics2016)
+abline(mod1)
+
+points(LongJumpOlympics2016$Year[16], 
+       LongJumpOlympics2016$Gold[16], 
+       col = 'red', 
+       pch = 16) #16 = the year we want to see the dude; the y = the distance that we want to look at; # pch = the character type; its if you know the list of types of stuff 
+# Think abotu how this would look after you knit it 
+```
+Bob is an outlier; but how much of an ouliter is he? 
+*Standarized Resiudals* 
+For residuals; mean = 0 and std = about std-hat of the error 
+THe standardized resiudals are : std.res = (y-y(hat))/(std and sqrt(leverage))
+CHeck the readings for these 
+
+```{r}
+
+summary(mod1)
+
+st.resid.est <- mod1$residuals/summary(mod1)$sigma #WHat is Sigma? 
+st.resid.est
+
+rstandard(mod1) - st.resid.est #Leverage 
+```
+
+INfluence Analysis 
+- Show how if you move a point in the X or Y direction how it impacts teh regression line 
+
+Typical Leverage 
+- For a simialr linear model : hi = (1/n) + ((xi-x(bar))^2)/(sum(xi-X(Bar)^2)) <- leverage for each individual point 
+if we look at teh sum of all teh levaerages; then it should be 2 
+- its useful ebcause a tpyical leverage value would have be 2/n = mean leverage 
+look for hi > 2(2/n) or hi > 3(2/n)
+THis is still predictors; 
+
+```{r}
+2/28 #Average leverage 
+# Dif points, bigger, might have dif influence on model 
+2*2/28
+3 * 2/28 # These values aren't super sepciacl; they're jsut cut off points for hugher poteint thatl have influence 
+#Hat values does this calcutlation for you 
+
+hatvalues(mod1)
+```
+
+The data above is ordered; so you can see how the leverages are going to be similar; the ones that are differente will haev a higher leverage, but once it gets cloer, the leverave will be smaller 
+
+Can sort teh values if you want a better idea of what things look like 
+```{r}
+sort(hatvalues(mod1))
+
+# IFyouw want to look at big leverages 
+
+sort(hatvalues(mod1), decreasing = TRUE)
+
+# Even our smallest and biggest values are not that far away from teh influence values; which are the 2*2/28; etc. 
+```
+HOw to only pull some of the residual values 
+```{r}
+head(sort(hatvalues(mod1)), decreasing = TRUE, 10)
+```
+
+The above just pulls the biggest 10 so you dont get like 20 pages of residuals on the homework completion 
+
+These values dont appear to have much leverage; but waht about the palm beach example? 
+We're going to build up a model so you can redict what people would get in the thing 
+```{r}
+data("PalmBeach")
+ElectionModel = lm(Buchanan~Bush, PalmBeach)
+plot(Buchanan~Bush, data = PalmBeach)
+abline(ElectionModel)
+
+points(PalmBeach$Bush[50],
+       PalmBeach$Buchanan[50],
+       col = "red", 
+       pch=16) # THe pch function fills in the point; if you want ti more or less filledin ; maybe it changes the visual too,but not sure. 
+```
+
+```{r}
+2/67 # There are 67 countries 
+
+2*2/67 # Low influence 
+3*2/67 # High influnce 
+
+hatvalues(ElectionModel)
+
+head(
+  sort(
+    hatvalues(ElectionModel),
+    decreasing = TRUE, 
+    10)
+  ) # THis should show 10 results, but only hows a couple ; nto sure what's up 
+```
+
+```{r}
+
+PalmBeach$Leverage <- hatvalues(ElectionModel)
+
+PalmBeach[c(13,52,6,29,50,16,48,5,36,53),] # Tehse are the rows that i want to look at; and also teh columsn that i want to look at; no specific columns 
+
+```
+
+Above, want to look at how much the dade country is having on teh thing vs palm beach; it has high leverage so it could also be impacting the model 
+
+```{r}
+plot(Buchanan~Bush, PalmBeach)
+abline(ElectionModel, col="Blue")
+
+noPalm <- subset(PalmBeach, County!='PALM BEACH')
+ElectionModel.noPalm <- lm(Buchanan~Bush, data = noPalm)
+abline(ElectionModel.noPalm, col = "red")
+
+noDade <- subset(PalmBeach, County!='DADE')
+ElectionModel.noDade <- lm(Buchanan~Bush, noDade)
+abline(ElectionModel.noDade, col= "green")
+
+```
+
+**Cook's Distance**
+How much would the fit change if one data value were omitted? 
+Di increases with eithe rpoor fit (Std. res) and high leverage (hi) 
+- Compare to otehr Dis, study any case with Di>0.5; worry if Di>1.0
+```{r}
+cooks.distance(ElectionModel)
+head(
+  sort(
+    cooks.distance(ElectionModel),
+    decreasing = TRUE, 
+    8
+  )
+)
+
+```
+
+```{r}
+plot(ElectionModel)
+# Cook's distance; 0.5 and 1; we can say if it's outside of this, then it influences the model; tells up impact, less so leverage 
+# Why do these points have impaoct and do we want them to impact it? We might have some extreme values that we dont care if they predict or not; good to see if it's nice to see if something is impacting our predictions 
+```
+
+NOtes on the 2nd Homework 
+- WIll predict things; but you need a set subset; you need to look at a certain subset; code will help; r = eval = FALSE; 
+- eval = FALSE; this means that if you run it, it will run, but if youknit it it iwll ignore the chunk; so make sure you get rid of that.

@@ -1,0 +1,53 @@
+---
+title: "Class 1 R Notebook"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+```{r}
+# loads a package needed to use the read_csv() function
+# install package before first using it for the first time
+
+library(readr)
+
+# loads the DistanceHome dataframe into the environment from github
+
+DistanceHome <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/DistanceHome.csv")
+
+# Alternative way to load dataframe (remove # to use)
+# DistanceHome.csv must be saved in the same folder as this notebook!
+
+#DistanceHome <- read_csv("DistanceHome.csv")
+
+
+# Shows the variables and first 6 cases (by default)
+
+head(DistanceHome) 
+```
+
+```{r}
+# dataframe$variable_name
+
+mean(DistanceHome$Distance)
+median(DistanceHome$Distance)
+
+hist(DistanceHome$Distance)
+boxplot(DistanceHome$Distance, horizontal = TRUE)
+```
+
+```{r}
+# Assignment operators in R: = vs. <-
+
+xbar = mean(DistanceHome$Distance)
+m = median(DistanceHome$Distance)
+
+residxbar = DistanceHome$Distance-xbar
+residm = DistanceHome$Distance-m
+
+sum(residxbar^2)
+sum(residm^2)
+```
+
+
+

@@ -1,0 +1,54 @@
+---
+title: "STOR 455 Class 9 R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r warning=FALSE, message=FALSE}
+library(readr)
+library(Stat2Data)
+
+DistanceHome <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/DistanceHome.csv")
+
+Domestic = subset(DistanceHome, Distance<250)
+```
+
+```{r}
+plot(Distance~Hours, data=Domestic)
+moddist = lm(Distance~Hours, data=Domestic)
+abline(moddist, col="red")
+summary(moddist)
+```
+
+```{r}
+cor(Domestic$Distance, Domestic$Hours)
+```
+
+```{r}
+data(Houses)
+head(Houses)
+
+cor(Houses)
+```
+
+```{r}
+data(Cereal)
+head(Cereal)
+
+#cor(Cereal)
+
+cor(Cereal[c(2:4)])
+```
+
+```{r}
+cor.test(Domestic$Distance, Domestic$Hours)
+```
+
+```{r}
+anova(moddist)
+```
+
+```{r}
+summary(moddist)
+```

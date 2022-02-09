@@ -1,0 +1,166 @@
+---
+title: "STOR 455 Class 5 R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+ 
+```{r message=FALSE, warning=FALSE}
+# message=FALSE, warning=FALSE suppress warnings and messages from appearing in knitted files
+
+library(readr)
+library(Stat2Data)
+
+Planets <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data//Planets.csv")
+
+head(Planets)
+```
+#### Later class notes: Planets Data #### 
+- Planet Slider: Shiny.stlawu.edu
+
+## How do we solve to find what transofrmation to do? Learn here: #### 
+```{r}
+plot(Year~Distance, data = Planets)
+# Looks less linear as you go further out planets 
+# Build linear model to see how fit 
+mod2 <- lm(Year~Distance, data=Planets)# This line min this square of errors, not good, but fits critera
+abline(mod2) 
+# WE see that a curve might define it better 
+```
+```{r}
+qqnorm(mod2$residuals) # IF these were perfectly dist, what line would they follow? THat's what this shows 
+qqline(mod2$residuals) # Have to run both at the same time or R gets confused 
+
+# Wanted to plot resid by fitted do: 
+plot(mod2$residuals~mod2$fitted.values)
+abline(0,0) # this makes a horizontal line; if all the points were on this line then they would all be on teh line; devation here shows pattern 
+# This zooms in and shows differences 
+
+```
+```{r}
+plot(mod2)# Plot does a lot of things; if you input a linear model, it will do a diadnoistc plot of the linear model 
+# Does 4-5 plots to see what the data looks like; it gives you different plots 
+# We can jsut make teh first two because we only want to see teh first two 
+# YOu can tell R to give you only two; so: 
+plot(mod2, 1:2)
+# A linear model doesn't appear to work, so lets find a way to make it linear and get teh pattern we want 
+
+```
+- YOu can change the power function here and it will show you results; year = distance^1.5 power appears to represtnt the planets really well 
+- We are going to try different scatterplots and LM with: 
+- year v dist 
+log(Year) v Dis 
+Year  vs Log(Dis)
+log(YEar) v Log(Dis) 
+
+```{r}
+#### Log ear, and keep dis the same ####
+par(mfrow= c(2,2)) # Tells R to spit out all the below plots together; you have to runt he whole code to get this 
+
+plot(Year~Distance, Planets)
+plot(log(Year)~Distance, Planets)
+# log = base e, natural log; this really doesnt look more linear, so it's not the route we want to go; lets try something new 
+plot(Year~log(Distance), Planets)
+# Better, but pretty much the inverse of what we wanted; 
+plot(log(Year)~log(Distance), Planets)
+# This looks much more like a line; so we will use this 
+# Transofmrations may help some, but hurt other conditionsl so you will haev to test it 
+```
+```{r}
+#### Log year by Log distance 
+mod3 <- lm(log(Year) ~ log(Distance), Planets)
+plot(log(Year)~log(Distance), Planets)
+abline(mod3)
+# This looks pretty good 
+#THen plot the residual diagnostics 
+
+plot(mod3, 1:2) # Tells you if the line is a good fit, or if it's all wonky 
+# Linear looks good 
+# Variance loks good 
+# Looks divation, but it's still fine because it's really small curve ebcause it's such small value 
+# Norm residuals 4, might get in the way; for all 9 datapoints; tehn we might have more issue, but it's just 9 points 
+```
+#### Fitting the planet Model #### 
+- log(Year) = BB0 +B1log(Distance) + E 
+we need to undo what we did so we get back to the orginal units 
+B0 = intercept 
+We want to solve this for year so we can get the year value back; 
+We have to use log rules to do this 
+
+log(Planets$Year) =  -0.0034399 + 1.5020611*log(Planets$Distance)
+
+Year = e ^(-0.0034399 + 1.5020611(log(Planets$Distance))
+
+Year = e ^(-0.0034399) e^((1.5020611)*(log(Planets$Distance))
+
+Year = e ^(-0.0034399) e ^(log(Planets$Distance ^1.5020611))
+
+Year = e ^(-0.0034399) (Planets$Distance^1.5020611)
+
+```{r}
+mod3 # Where we get the below numebrs
+
+exp(-0.0034399)
+```
+
+```{r}
+
+plot(Year~Distance, Planets) # THis isn't a line anymore; so we can use teh fucntion "curve" which will put al in eon any data 
+curve(0.9965*x^1.502061, add = TRUE)# Give the line formula ; have to give it a baby x 
+# Kinda wonky because you have to put the values in yourself 
+
+```
+```{r}
+# Bottom two lies; B0 = intercept; B1 = intercept; frmot eh sum of mod3, I will pull out a value from teh table; the brackets row1, column1; when you do a curve of the num values; you can uses these svaed vars instead; it looks like it makes teh same plot, but it's a little more specific and detailed 
+B0 = summary(mod3)$coefficients[1,1]
+B1 = summary(mod3)$coefficients[2,1]
+
+plot(Year~Distance, data=Planets)
+curve(exp(B0)*x^B1, add=TRUE)
+```
+```{Notes}
+#### Notes #### 
+# The current R notebook that you downloaded is a little out of data 
+# If you're writing some explations, don't write them in chunks (Like don't do this right now)
+# If you're writing outside of a chunk, then you don't need to include a "#" sign; HTML code applies to things outside of chunks 
+```
+#### Notes: Last Class Review
+- In the population the best fit line with min the sum of squared residuals
+- We can't make a population one, but we can do it for teh population 
+- Simple LInear MOdel COnditions: 
+-- Linearliy: Plot the graph, does a line appear to plot it? THe more gray area; if a Line doesnt work, does something else work? If not, go with a line
+--- Residual by fit: there shouldn't be a pattern; going to be more useful for futrue different regressions 
+-- Zero Mean COndition: As long as we are doing the least squares best fit line - it will be true; if we look at all the vertaicl adistances then it will all be zero; if we actually calc it it's going to be really close to zero, basically zero 
+-- COnstant Variance: Over the span of teh dredcition does the data vary from teh regression line or does it change? We want some amount of variability;
+--- We don't want it to look like a fan or any pattern; we want random dots 
+----We are going to look at how to fix the fan shape today 
+-- INdependence: Comes down to data collection; if we think there is an issue, then that's really beyond our scope if we already have the data 
+-- Normaility: look at a histogram of the residuals ;to see teh shape of the distribution; is a way to quickly see if there is a defined skew 
+---- **Look at the QQnorm and QQLINE plot; takes zscore of the residuals and what we would epect them to be; if our data fits the line perefectly, then it will look like a line; if the tails are flying out, then one of teh sdies are skewed or packed;**
+---- **Sometimes at each X, the Y's follow a normal distribution; if we had more discrete data like distance home (ppl are 2hrs from home, 3, 4, etc. and try to predict dis away; for all those two hours away, are those normally distributed? What about the 3 and 4? We will talk about this later; only work about thisif for each value of the predictor that are a lot fo values of response)**
+
+#### Common Regression Problems ####
+- NOnlinear patterns in resides 
+- Heteroscedasticity (non can var) 
+- Lack of norm 
+- Outliers 
+
+_Transformations_ 
+Can be used to : 
+- Addres non linear patterns 
+- stable variance 
+- remove skewness from residuals 
+- minimize effects of outliers 
+Need to makes ure you're not overfitting because if you got onther set of data from teh population it might not apply 
+
+_Common Transformations:_ 
+- Log 
+- Square 
+_ Expone 
+- Power 
+- Reciprocal 
+
+#### Class Example: Planets ####
+When you knit things, you sometimes want to hide things; r message =FALSE and warning = FALSE will hide things; you can include other things here too to make things false soe xtra things dont happen. 
+- I can't find the csv file, so we're just going to take notes here 
+- FOund it.  It's class 4, not class 5

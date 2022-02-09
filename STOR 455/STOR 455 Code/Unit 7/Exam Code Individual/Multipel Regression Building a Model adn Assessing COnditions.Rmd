@@ -1,0 +1,33 @@
+---
+title: 'STOR 455 Homework #9'
+subtitle: Due 11/29
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r}
+library(readr)
+library(Stat2Data)
+"SleepStudy" <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/SleepStudy.csv")
+```
+
+
+6. Multiple Regression: Building a Model & Assessing Conditions
+
+1) Construct a linear model with _Happiness_ as the response and _ClassYear_ , _AverageSleep_ , _DASScore_ as the predictors. Include the output for the summary of the model.
+
+```{r}
+mod1 = lm(Happiness~ClassYear + AverageSleep + DASScore, data=SleepStudy)
+summary(mod1)
+```
+
+
+2) Asses the conditions for linearity of the model you constructed in question 1
+
+```{r}
+plot(mod1, 1:2)
+```
+Looking at our residuals vs. fitted plot, we can see that there seem to be some issues with constant variance, as the data is more compact towards the larger fitted values. Again looking at the residuals vs. fitted plot, there are not issues with linearity as there is not a clear, defined non-linear pattern. Looking at the normal quantile plot, there seem to be issues of normality with the tails of the data, especially the lower tail, as it does not seem to quite fit a normal distribution.

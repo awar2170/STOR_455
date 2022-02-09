@@ -1,0 +1,131 @@
+---
+title: "STOR 455 Class 4 R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+  pdf_document: default
+---
+
+```{r message=FALSE, warning=FALSE}
+# message=FALSE, warning=FALSE suppress warnings and messages from appearing in knitted html
+
+library(readr)
+library(Stat2Data)
+
+Planets <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data//Planets.csv")
+```
+
+
+```{r}
+head(Planets, 9)
+
+plot(Year~Distance, data=Planets)
+mod2=lm(Year~Distance, data=Planets)
+abline(mod2)
+```
+_Simple Linear Model- Conditions_ 
+**Model:**
+1. Linearity: The means for Y vary as a linear function of X.
+**Error:**
+2.Zero Mean: The distribution of the errors is centered at zero.
+3.Constant variance: The variance for Y is the same at each X. (Homoscedasticity)
+4.Independence: No relationships among errors.
+5.Normality:
+- Residuals are normally distributed
+- (sometimes) At each X, the Y’s follow a normal distribution.
+
+```{r}
+plot(mod2$residuals~mod2$fitted.values)
+abline(0,0)
+
+qqnorm(mod2$residuals)
+qqline(mod2$residuals)
+```
+
+```{r}
+plot(mod2, 1:2)
+```
+__What to do when regression assumptions are violated?__
+*Examples:*
+1.Nonlinear patterns in residuals
+2.Heteroscedasticity (nonconstant variance)
+3.Lack of normality in residuals
+4.Outliers: influential points, large residuals
+
+```{r}
+par(mfrow=c(2,2))
+
+plot(Year~Distance, data=Planets)
+plot(log(Year)~Distance, data=Planets)
+plot(Year~log(Distance), data=Planets)
+plot(log(Year)~log(Distance), data=Planets)
+```
+__Data Transformations__
+*Can be used to:*
+1.Address non-linear patterns
+2.Stabilize variance
+3.Remove skewness from residuals
+4.Minimize effects of outliers
+
+__Common Transformations__
+For either the response (Y) or predictor (X)...
+- Logarithm: 𝑌→l𝑜𝑔⁡(𝑌)
+- Square root: 𝑌→√𝑌
+- Exponentiation: 𝑌→𝑒^Y
+- Power function: 𝑌→𝑌^3
+- Reciprocal: 𝑌→1/𝑌
+
+__Example: Planets__ 
+
+Y = Length of the “year” for planets
+X = Distance from the sun
+
+Try scatterplots and LM with
+Year vs. Distance
+log(Year) vs. Distance
+Year vs. log(Distance)
+log(Year) vs. log(Distance)
+
+*Which transformation gives the best linearity?*
+```{r}
+mod3 = lm(log(Year)~log(Distance), data=Planets)
+
+plot(log(Year)~log(Distance), data=Planets)
+abline(mod3)
+
+plot(mod3, 1:2)
+```
+
+```{r}
+summary(mod3)
+```
+
+log(Year) =  -0.0034399 + 1.5020611*log(Distance)
+
+Year = e ^(-0.0034399 + 1.5020611(log(Distance))
+
+Year = e ^(-0.0034399) e ^((1.5020611)(log(Distance))
+
+Year = e ^(-0.0034399) e ^(log(Distance ^1.5020611))
+
+Year = e ^(-0.0034399) (Distance^1.5020611)
+
+
+```{r}
+exp(-0.0034339)
+```
+
+Year = 0.996572(Distance^1.5020611)
+
+```{r}
+plot(Year~Distance, data=Planets)
+curve(0.996572*(x^1.5020611), add=TRUE)
+```
+
+```{r}
+B0 = summary(mod3)$coefficients[1,1]
+B1 = summary(mod3)$coefficients[2,1]
+
+plot(Year~Distance, data=Planets)
+curve(exp(B0)*x^B1, add=TRUE)
+```

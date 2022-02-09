@@ -1,0 +1,279 @@
+---
+title: "STOR 455 - Class 13 - R Notebook"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r message=FALSE, warning=FALSE}
+library(readr)
+library(car)
+library(corrplot) #Install first if needed
+library(leaps) #Install first if needed
+
+StateSAT <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/StateSAT.csv")
+
+source("https://raw.githubusercontent.com/JA-McLean/STOR455/master/scripts/ShowSubsets.R")
+```
+
+```{r}
+head(StateSAT)
+# want to keep in mind what teh corerlation between things are to see what may be useful for a good model 
+
+cor(StateSAT[c(2:8)])
+# This makes a correlation matrix that will tell us the correlation between everything in the dataste 
+# only owrks for numeric data 
+# Not super easy to read 
+# Takers has a negative correlation 
+# Rank has a strong postive correlation 
+# Income and years and other corerlation 
+# Doens't tel lme if there is a linera realtionship; its assuming linear relation 
+
+corrplot(cor(StateSAT[c(2:8)]), type="upper")
+# Helps to visualize the matrix better than other things 
+# A nicer visual of the correlation matrix 
+# Dark blue = strong correlation 
+# Darker and bigger circle = stronger positive or negative correlation 
+# Type = "upper" just gives us the upper part of it, it avoids duplicate infomraiotn 
+# could also tell where we could have multicllinearity 
+# Takers may have multicolinearity from income and rank 
+# INcome andr ank will have the same prediction power as takers 
+# We can see rank, income and takers have high correlation, so we proabbly dont need all three of those int eh same model because they might explain similar things 
+```
+
+```{r}
+plot(SAT~., data=StateSAT[c(2:8)])
+# Plot the data against each of the predictors int eh dataframe 
+# Excludes state (Because we would have to factor state, and that would be a lot of information to process)
+
+# Rank adn takers have a recise pattern wtih SAT scores; its appears to have a curved realtionship there 
+# Might not have a good linear realtion model conditions, but we can transforms them and work with them 
+# Public and Expend = there is one state that is really different htan teh otehrs and thats causing some issues, so we might not want ot use that because it might impact the model in ways we dont wnat 
+```
+
+```{r}
+modSAT1 = lm(SAT~., data=StateSAT[c(2:8)])
+# Make a linear model with all the variables 
+summary(modSAT1)
+# Pvalue of  kiw, so we can say that some of these we can sue 
+# Rank, expend and years have low pvalues; but we could have icorrect infomraiton because of multicollinarity 
+# Rank has a similar issue, but it's small pvalue, so it might be a better predictor model 
+# Some have high pvalues even though the correlation looked okay
+
+# R squared is the precentage of sat scores that are explained by teh model; this is hgih, but teh conditoins are really met, so we cant use that as a relaibale model 
+
+plot(modSAT1) # Too look at residuals
+# Lineariry isnt super good 
+# normial is really bad, the tail has an issue 
+# Residual plot has one state that has really different values than other things
+vif(modSAT1) # To see if there is any inflation of variance 
+```
+__Criteria to Compare Models?__
+1. Look for large R2
+- But R2 is always best for the model with all predictors
+- R squared will never go down because if you add something, you're not explaining less variability you can only explain that much or more; 
+- Just because it's high rsquared, deosnt mean they are signifigiant 
+
+2. Look for large adjusted R2
+- Helps factor in the number of predictors in the model
+- Adj r squared formuals: 
+-𝑅_𝑎𝑑𝑗^2=1−(𝜎̂2_𝜀^2)/(𝑆_𝑌^2 )
+- 𝑅^2=𝑆𝑆𝑀𝑜𝑑𝑒𝑙/𝑆𝑆𝑇𝑜𝑡𝑎𝑙 =1−𝑆𝑆𝐸/𝑆𝑆𝑇𝑜𝑡𝑎𝑙
+- 𝑅_𝑎𝑑𝑗^2=1−(𝑆𝑆𝐸⁄((𝑛−𝑘−1)))/(𝑆𝑆𝑇𝑜𝑡𝑎𝑙⁄((𝑛−1))) =1−(𝜎̂_𝜀^2)/(𝑠_𝑌^2 )
+- (adjusts for the number of predictors in the model)
+- THis penalizes teh r squared based ont eh predictors that we have 
+- it tells us that we know we will have an increased rsquared with extra predictors, so we need a certain amoutn explained to increase teh rsquared 
+
+3. Look at individual t-tests
+- Might be susceptible to multicollinearity problems
+- There could be decent variables, but we aren't seeing the full story 
+
+__How to Choose Models to Compare?__
+1. Method #1: **All Subsets!** 
+- Consider all possible combinations of predictors.
+- How many are there?
+- Pool of k predictors then 2𝑘−1 subsets
+- *Advantage:* Find the best model for your criteria
+- *Disadvantage:* LOTS of computation
+
+*NOtes* 
+- All subsets: 
+- Can look at all subsets or 1 predictors, 2, 3, 4, 5, etc. 
+- We can make a lot of predictors.  
+- Can get out of hand quickly if you have a lot of variables 
+- Catgegorical variables make this message because when you factor it you get a variable for the category 
+
+```{r}
+all = regsubsets(SAT~., data = StateSAT[c(2:8)], nbest = 2, nvmax = 6)
+# nbest will tell you the two best models with 6, 5, 4, 3,  2, and 1 predictor 
+# nvmax will say only look at models with up to 6 predicotrs here; so it is like an upper bound; its not applicable here, but if we had a bigger selection it would be needed 
+summary(all)
+
+#ISsue: THis doesn't compare the models between eachother 
+```
+
+```{r}
+# IMPORTANT
+ShowSubsets(all)
+# this iwll give you more infomraiton 
+# For each model, what's teh rsquared, the adj rsquared adn teh mallo cp
+
+# We want a small Mallo Cp
+# The first line with rank, it says 77% the stuff is explained, but its' not taking into accoun the otehr variables 
+```
+
+__Mallow’s Cp__
+- Note: R2, Adjusted R2, SSE, all depend only on the predictors in the model being evaluated – NOT the other potential predictors in the pool. 
+- Mallow’s Cp: When evaluating a subset of m predictors from a larger set of k predictors,
+- m = # predictors in the reduced model
+- 𝐶_𝑝=(𝑆𝑆𝐸_𝑚)/(𝑀𝑆𝐸_𝑘 )+2(𝑚+1)−𝑛
+*notes* 
+- The amount of var explained with reduced model (What we are just using) compared with teh full model with all of the possible predictors in it (The entire model)
+- What fraction of the model is explained 
+- It penalizes bigger models 
+- If we look at the full model, it gives us the SSE fule/MSE + the left over (the 2(m-1) etc. 
+- Mallow cp = number of predictors + 1 
+- If numbers are lower than that number, then thats a useful model 
+- So 2 predictor model, look for a Cp of 3 or less 
+
+__Notes on Cp__
+- Cp depends on the larger pool of predictors as well as the set being considered.
+-  For full model Cp = k+1
+-  For a “good” set of predictor,  Cp should be small.
+- Like Adj R2, Cp weighs both the effectiveness of the model (SSEm) and the # of predictors (m). 
+
+__Predictor Selection Methods__
+- Think, consult, graph… but if that fails, then:
+1. All subsets
+2. Backward elimination
+3. Forward selection
+4. Stepwise regression
+
+```{r}
+modSAT3 = lm(SAT~Years+Public+Expend+Rank, data=StateSAT) # this is lowest mallow Cp from best subsets above 
+summary(modSAT3)
+plot(modSAT3)
+vif(modSAT3)
+# Look at sum; it's sig because we know allsubsets 
+# Public has a higher pvalue, but thats because of multicollinearity; they were all highly correlated; public is being inflated a bit 
+# We can see that ints not inflated too much because teh VIF is amll; maybe Public just isnt that good 
+# Problem: The residual anaysis, we still have nonlinearitiy; if we too things taht din't haev lienar relation with teh response, then we are going to have problems 
+# We need to try and make tehse lienar realtions work first, then put it in the model selction process. 
+```
+
+
+__Backward Elimination__
+1. Start with the full model (all predictors)
+2. Calculate if the model would be “better” by removing each of the predictor individually
+3. Find the “least significant” predictor
+4. Does removing the predictor create a “better” model?
+	- No, then Keep the predictor & stop
+	- Yes, then Delete the predictor and go back to step 2 with the reduced model.
+
+- *Advantages:*
+		Removes “worst” predictors early
+		Relatively few models to consider
+		Leaves only “important” predictors
+
+- *Disadvantages:*
+		Most complicated models first
+		Individual t-tests may be unstable 
+		Susceptible to multicollinearity
+		
+```{r}
+summary(modSAT1)
+# See that we would want t amodel with no income in it because it's the worse predictor 
+
+#This is what backwards elimiation is doing, but step by step
+
+modSAT2.1 = lm(SAT~Takers+Years+Public+Expend+Rank, data=StateSAT)
+summary(modSAT2.1)
+# We look at the summary of the new model and then choose the next worse predictor that we want to get rid of 
+
+modSAT2.2 = lm(SAT~Years+Public+Expend+Rank, data=StateSAT)
+# This is the new model without takers, because takers probably wasn't signfigant 
+summary(modSAT2.2)
+# We look at the summary of the new model ad tehn choose the next worse predictor that we want to get rid of 
+
+modSAT2.3 = lm(SAT~Years+Expend+Rank, data=StateSAT)
+# This is the new model without takers and public, because public probably wasnt signifigant either 
+summary(modSAT2.3)
+```
+
+**How to do backwards elimination in R** 
+
+```{r}
+# Fit the full model
+Full=lm(SAT~Takers+Income+Years+Public+Expend+Rank, data=StateSAT)
+# Find the MSE for the full model
+
+MSE=(summary(Full)$sigma)^2
+# Backward: use the step( ) command starting with the full model
+#MSE = variance of the residuals 
+
+step(Full,scale=MSE) # this is the step back so it can step by the mallow cp, so it will get teh model with the smallest mallo cp
+#R uses Cp (AIC) to pick next model
+# Builds model with all predictors; if we removed any predictors, tehn what would the model be if weremove: none = 7; if we remove income, takers, or public then it would get better, but the expend, years, and rank would be bad to get rid of 
+# It will take teh worse predictor and get rid of it 
+# the best model will be at the bottom 
+# This can take a lot of screen, so you can add "trace = FALSE" to the end, which will just give you the last output 
+```
+
+__Forward Selection__
+1. Start with the best single predictor
+2.  Is that predictor significant? 
+ 		Yes, then Include predictor in the model
+		No, then Don’t include predictor & stop 
+3. Find the “most significant” new predictor from among those NOT in the model. Return to step 2.
+
+- *Advantages:*
+		Uses smaller models early (parsimony)
+		Less susceptible to multicollinearity
+		Shows “most important” predictors
+
+- *Disadvantages:*
+		Need to consider more models
+		Predictor entered early may become 	redundant later 
+		
+- Continue until adding something is no longer useful 
+- Want to start with no predictors in the model 
+
+```{r}
+    # Start with a model with NO predictors
+none=lm(SAT~1,data=StateSAT)
+
+   #Specify the direction
+step(none,scope=list(upper=Full),scale=MSE, direction= "forward")# Full is the full model, you have to tell R what the end point is, it wouldn't have an end point if you didn't include that 
+
+# Shows you what will happen to the mallow cp if you add a certian predictor to it 
+# Computationally, it is a little heavy because it has a lot to look at 
+# Sometimes though, the first predictor isnt good once you reach the end 
+```
+
+```{r}
+step(none, scope=list(upper=Full), scale=MSE, direction="forward", trace=FALSE) # This is how you get the forward selection, but just the end solution 
+```
+
+__Stepwise Regression__
+- Basic idea: Alternate forward selection and backward elimination
+1. Use forward selection to choose a new predictor and check its significance.
+2. Use backward elimination to see if predictors already in the model can be dropped.
+
+- What would happen if you add or substract certain things and how would that impact eth mallow cp
+
+```{r}
+   # Start with a model with NO predictors
+none=lm(SAT~1,data=StateSAT)
+
+   # Don’t specify a direction
+step(none,scope=list(upper=Full),scale=MSE)
+# In this case we end up with the same case, but this isn't always the case 
+# you might end up with different things 
+```
+
+__Missing Values__ 
+- Warning! If data are missing for any of the predictors in the pool, R’s  “Stepwise” and “Best Subsets” procedures will eliminate the data case from all* models.
+- Thus, running the model for the selected subset of predictors alone may produce different results than within the stepwise or best subsets procedures.
+- *R’s step( ) sometimes gives an error.
+

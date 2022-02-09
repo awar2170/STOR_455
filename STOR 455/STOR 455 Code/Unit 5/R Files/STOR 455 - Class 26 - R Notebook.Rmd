@@ -1,0 +1,285 @@
+---
+title: "Class 26 R Notebook"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r message=FALSE, warning=FALSE}
+library(titanic)
+data("titanic_train")
+head(titanic_train)
+```
+
+__Logistic Regression__
+In all of our regression models (so far) the response variable, Y, has been quantitative.
+What if we want to model a categorical response?
+
+__Categorical Response Variables__
+- Ways you can think about categorical response variables
+- WE will only focus on binary responses 
+
+- Binary Response: Whether or not a person smokes and Success of a medical treatment, where Y is divided into NOn-smoker vs smoker and X is divided into Durvies vs Dies 
+- Ordinal Response: Opinion Poll responses: Where Y = Agree, Netural, and Disagree 
+- Nominal Response: Political preference; where y = Democrat, Republican, independent 
+
+__Binary Logistic Regression__
+- Response variable (Y) is categorical with just two categories (yes/no or success/failure or 0/1 …). 
+- One approach: Code the response Y as a (0,1) dummy (indicator) variable. 
+- Assume we have a single quantitative predictor X. 
+
+__Titanic Survival__
+Y = Survived (0 = no; 1 = yes) 	X = Fare (ticket cost in dollars)
+- Want to predict if the people on the titance survived based on how much they paid 
+
+```{r}
+# amkes a table that tells you how many people survived out of the titanic overall 
+# Just how many people survived total vs died
+table(titanic_train$Survived)
+```
+
+```{r}
+# Survival related to ticket 
+# SO a table on if survived based on what type of ticket class they bought 
+# Shows a rough relatioship between the pclass and the others 
+table(titanic_train$Survived, titanic_train$Pclass)
+
+# The below caompres the survided to teh class, 
+
+# the first calss, 
+# third class a lot didn't survived 
+# Wouldnt an underlying variable be that there are more people buying lower class tickets than higher class tickets?  I think people should look at the proportion 
+# WEll, based on teh propprtions, it still looks like the upper class surived more, hmm wonder why 
+
+```
+Below: 
+low pvale; we ave strong ev to say that it si nonzero and there is some linear relationship 
+
+- if we look at teh model we can plot survied by fare; 
+```{r}
+Titanic_mod=lm(Survived ~ Fare, data=titanic_train)
+summary(Titanic_mod)
+```
+plotting surivied by fare; 
+hard to see how dense it is; there are a lot of calues on top of the m on the bottom; 
+
+if we jitter teh data, it moves it up and down a random amount so we can see the visual difference; it doens't chnage the data, it just changes the visual of it.
+```{r}
+plot(Survived  ~ Fare, data=titanic_train)
+abline(Titanic_mod, col="red")
+```
+Jitter shows that there is a trend; there appeares to be if you paied more for your ticket, you appear to survied more 
+- residual analysis helps see the difference in plottin gof the things 
+
+```{r}
+ plot(
+   jitter(Survived, amount=0.1) ~ Fare, 
+   ylim = c(-0.25,1.25), 
+   data=titanic_train
+   )
+
+ abline(Titanic_mod, col="red")
+```
+
+```{r}
+plot(Titanic_mod, c(1, 2, 5))
+```
+
+The aove shows that teh resultial by fitted has a path 
+residuals are NOT normally distributed 
+and the cook's distance doesn't hae any poitns of influence; 
+
+but bottom line the model doesn't work very well 
+
+__Binary Logistic Regression Model__
+Y = Binary response
+X = Quantitative predictor
+π = proportion of 1’s (yes, success,…) at any x
+Probability form
+𝜋=𝑒^(𝛽_𝑜+𝛽_1 𝑥)/(1+𝑒^(𝛽_𝑜+𝛽_1 𝑥) )
+- curve(exp(B0+B1*x)/(1+exp(B0+B1*x)),add=TRUE, col="red") 
+
+below is a model of it by fare ; yo umaek teh family binomial 
+What does it mean when you make the family binomial? Does that make it binary? 
+- No it's not binary, it means that it is a squared plot 
+
+```{r}
+Titanic_logitmod = glm(Survived ~ Fare, family = binomial, data=titanic_train)
+# Darws a curve that has a curve in teh middle with a similar likelihood of surviving or not suriving 
+# We are looking at the model and predicting teh pi outcome 
+# The probabiltiy of that outcome 
+# Predict prob of 0 - 1someone who fits this fare would survive based ont eh model we have created 
+# WE have to use teh glm function to tdo that 
+
+summary(Titanic_logitmod)
+# this can be aline if we want it to be 
+# But we have to look at it differently 
+```
+ABove, we are going to claim that the above is a linear model; we;re going to replot the data with teh jitter data; then see if the curve function equation looks nicer 
+
+we will learn later where teh curve function is coming from 
+
+we want to plot the curve = (exp(B0+B1*x))/(1+exp(B0+B1*x)) (Can see this formula filled in below)
+
+__Predicting Proportion of “Success”__
+In regression the model predicts the mean Y for any combination of predictors.
+- What’s the “mean” of a 0/1 indicator variable?
+𝑦̄=(∑𝑦_𝑖 )/𝑛=(#" of " 1′𝑠)/(#" of trials" )="Proportion of \"success\""
+- Goal for this model: Predict the “true” proportion of success, π, at any value of the predictor. 
+
+```{r}
+plot(Survived ~ Fare, data=titanic_train)
+
+B0 = summary(Titanic_logitmod)$coef[1]
+B1 = summary(Titanic_logitmod)$coef[2]
+
+curve(exp(B0+B1*x)/(1+exp(B0+B1*x)),add=TRUE, col="red") 
+# predicitng the changes of dying based ont eh ticket you bought 
+# WE say that there is about a 20% chance of dying if you payed a ceratin amount.  THat's what the red line says; at what price of your ticket would oyu have X precentage of curiviing or dying 
+```
+
+```{r}
+set.seed(10012020)
+passenger = titanic_train[sample(nrow(titanic_train),1),]
+passenger
+# We are randomly selecting one person so that we can check the residuals for a random value 
+```
+
+```{r}
+predict(Titanic_logitmod, passenger, type="response")
+# This is telling us, what do we predict a person who bought a certain amount's chance of surviving? 
+# This looks at how much they paid for their ticket and tells us where on teh red curve we would expect this dude to fall 
+# So thsi tells us that the dude has a 46% chance of surviving if he paid X amount for his ticket 
+```
+__Binary Logistic Regression Model__
+Y = Binary response
+X = Quantitative predictor
+π = proportion of 1’s (yes, success,…) at any x
+Probability form: 𝜋=𝑒^(𝛽_𝑜+𝛽_1 𝑥)/(1+𝑒^(𝛽_𝑜+𝛽_1 𝑥) )
+Logit form: log⁡(𝜋/(1−𝜋))=𝛽_0+𝛽_1 𝑥
+**NOTE** The logit form can be solved to be in linear form, which is why we can use linear regression rules with it.
+
+__Binary Logistic Regression Model__
+**Probability Form:** P(X) = ((e^(Bo+B1X))/(e^(B0+B1X)+1))
+**Logit Form:** ln(p/(1-p)) = B0 + B1X
+
+__Example: Golf Putts__
+Build a model to predict the proportion of putts made (success) based on length (in feet).
+Data are in Putts1 of Stat2Data.
+```{r message=FALSE, warning=FALSE}
+library(Stat2Data)
+
+data("Putts1")
+head(Putts1)
+```
+
+
+__Logistic Regression for Putting__
+```{r}
+modPutt=glm(Made~Length,family=binomial,data=Putts1)
+summary(modPutt)
+# pvalues are small 
+# So we like these realtionships, but we should plot it to see what it actually loks like and that is done below 
+```
+
+```{r}
+logit = function(B0, B1, x)
+  {
+    exp(B0+B1*x)/(1+exp(B0+B1*x))
+}
+# THis function will make the curve that we need on the curve above 
+#SO , this is the same as above
+
+```
+
+```{r}
+B0 = summary(modPutt)$coef[1]
+B1 = summary(modPutt)$coef[2]
+
+plot(jitter(Made,amount=0.1)~Length,data=Putts1)
+# These lines overall plot what the data looks like 
+curve(exp(B0+B1*x)/(1+exp(B0+B1*x)),add=TRUE, col="red")
+# This line is the line that we would use to predict someone will make a put based on the distance from the hole. 
+
+# Can also use the logit function 
+curve(logit(B0, B1, x), add = TRUE, col = "blue")
+# THis will make the same line as above 
+```
+
+```{r}
+logit = function(B0, B1, x)
+  {
+    exp(B0+B1*x)/(1+exp(B0+B1*x))
+}
+# THis function will make the curve that we need on the curve above 
+#SO , this is the same as above
+
+```
+
+__Golf Putts Probabilities__
+𝜋̂=𝑒^(3.257−0.5661𝐿𝑒𝑛𝑔𝑡ℎ)/(1+𝑒^(3.257−0.5661𝐿𝑒𝑛𝑔𝑡ℎ) )
+Where phat = 𝑝̂=(# 𝑚𝑎𝑑𝑒)/(# 𝑡𝑟𝑖𝑎𝑙𝑠)
+
+__Golf Putts Probabilities__
+Length: 3,4,5,6,7
+phat: 0.835, 0.739, 0.565, 0.488, 0.328
+pihat: 0.826, 0.730, 0.605, 0.465, 0.330
+
+Making a table of those that are made vs failed at different lengths 
+```{r}
+Putts.table = table(Putts1$Made, Putts1$Length)
+Putts.table
+```
+
+
+```{r}
+p.hat = as.vector(Putts.table[2,]/colSums(Putts.table))
+# Make it a vector because we want to be able to use it with dataframes 
+p.hat
+```
+
+
+```{r}
+pi.hat=0
+
+# Compare the predictions, so 3 - 7 feet; so from 3 ft to 4 ft to 5 ft to 6 ft etc. 
+# Will make the pihat for each of these 
+# Pihat = the probability of sucess at a certain feet distance 
+# Pi = success/trials 
+for(i in 3:7)
+  {
+    pi.hat[i-2] = logit(B0, B1, i)
+  }
+
+pi.hat
+```
+
+
+```{r}
+# Makea a dataframe that tells you the pihat values and the p hat values 
+# We dont know the difference btween pi and p hat 
+Putts = data.frame(
+  "Length" = c(3:7), 
+  "p.hat"  = p.hat, 
+  "pi.hat" = pi.hat)
+
+head(Putts)
+```
+* Probability form of puttin gmodel* 
+- etended from 0 - 12; the points on teh graph are the actual proprtions that were made; the p hat values; 
+
+the line shows the pi hat values; teh line on the 4 = what we predict; teh dot = the actual value
+- these are close adnthis is how we test teh linear model 
+- we are going to put it back to the logit form so that we cna put this on a line and we want to see if teh data fits teh lie 
+- if it doens't then we will have to do transformations 
+- it gets a lot math-y-er 
+we agoig to spend next class talking more about the math how to lok at hypothesis testing and anova doesn't make sence here anymore because teh residual doesn't work 
+each point represntes differen combination of data points.
+
+__Probability Form of Putting Model__
+```{r}
+plot(p.hat~Length,ylim=c(0,1), xlim=c(0,12), data=Putts)
+curve(logit(B0, B1, x),add=TRUE, col="red")
+```
+

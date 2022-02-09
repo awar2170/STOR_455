@@ -1,0 +1,45 @@
+---
+output:
+  word_document: default
+  html_document: default
+---
+# Logistic Regression
+### Building a Model with a single predictors
+
+```{r}
+library(readr)
+sleep = read.csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/SleepStudy.csv")
+```
+
+1)    Construct a model predicting _AllNighter_ by _ClassesMissed_. Include a summary of this model. Use this model to perform a hypothesis test to determine if there is significant evidence of a relationship between _AllNighter_ and _ClassesMissed_. 
+```{r}
+allnighter = glm(AllNighter ~ ClassesMissed, family = binomial, data = sleep)
+summary(allnighter)
+```
+Hypothesis test
+```{r}
+anova(allnighter, test = "Chisq")
+```
+Null hypothesis: The slope to the relationship between _AllNighter_ and _ClassesMissed_ is zero.
+
+Alternative hypothesis: The slope to the relationship between _AllNighter_ and _ClassesMissed_ is nonzero.
+
+2)    For a student that has missed 9 classes, what is the probability the model predicts that the student has pulled an all nighter?
+```{r}
+sleepmod = glm(AllNighter~ClassesMissed, data=sleep, family=binomial)
+predict(sleepmod, data.frame(ClassesMissed = 9), type="response")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+

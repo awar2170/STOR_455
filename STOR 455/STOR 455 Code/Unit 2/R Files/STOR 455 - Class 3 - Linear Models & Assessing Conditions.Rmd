@@ -1,0 +1,128 @@
+---
+title: "STOR 455 Class 3 R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+  pdf_document: default
+---
+
+```{r message=FALSE, warning=FALSE}
+# message=FALSE, warning=FALSE supress warnings and messages from appearing in knitted html
+
+library(readr)
+
+DistanceHome <- read_csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/DistanceHome.csv")
+
+# If notebook and csv file are saved in the same folder
+# DistanceHome <- read_csv("DistanceHome.csv")
+
+Domestic=subset(DistanceHome,Distance<250)
+```
+__Single Quantitative Predictor Model__ 
+- Notation:   
+-- Y = Response variable
+-- X = Predictor variable
+
+*Assume (for now) that both Y and X are quantitative variables.* 
+Y = f(x) + Error 
+
+_Simple Linear Model_
+- X = Single quantitative predictor
+- Y = Quantitative response
+
+*Goal*: Find a line that best summarizes the trend in the data.
+
+Y = Bo + B1x + Error 
+Response = Intercept + Slope*Predictor + Random Error 
+*Assumptions:* 
+- Assume:  Error ~ Follows a normal distribution and independent
+- There are 3 parameters to estimate: Bo, B1, and std error
+
+__Scatterplot in R__ 
+*See below* 
+```{r}
+plot(Distance~Hours, data=Domestic)
+```
+
+__Least Square Regression in R__
+*Syntax:* Syntax:    lm(Response~Predictor,data= )
+
+```{r}
+lm(Distance~Hours, data=Domestic)
+```
+
+_R – Plot with Fitted Line _
+```{r}
+mod1=lm(Distance~Hours, data=Domestic)
+plot(Distance~Hours, data=Domestic)
+abline(mod1)
+```
+
+
+_Simple Linear Model- Conditions_ 
+**Model:**
+1. Linearity: The means for Y vary as a linear function of X.
+**Error:**
+2.Zero Mean: The distribution of the errors is centered at zero.
+3.Constant variance: The variance for Y is the same at each X. (Homoscedasticity)
+4.Independence: No relationships among errors.
+5.Normality:
+- Residuals are normally distributed
+- (sometimes) At each X, the Y’s follow a normal distribution.
+
+_Linear_ 
+Look for consistent curvature or non-linear patterns
+
+_Constant Variance_ 
+Look for “fan-shaped” pattern
+- Fan-shaped is **bad** 
+
+```{r}
+summary(mod1)
+
+mod1$residuals
+mod1$fitted.values
+
+plot(mod1$residuals~mod1$fitted.values)
+abline(0,0)
+```
+
+_Residuals_ 
+Look at a histogram of the residuals 
+Look for clear skewness and outliers
+- skew and outliers are **bad**
+
+```{r}
+hist(mod1$residuals, breaks=10)
+```
+
+_How much Variability is Expected?_
+
+```{r}
+qqnorm(mod1$residuals)
+qqline(mod1$residuals)
+```
+
+```{r}
+#Sets randomization
+set.seed(455001)
+
+#Sample of 99 values from a Normal distribution; mean=0; sd=1; sorted ascending
+x = sort(rnorm(99,0,1))
+hist(x)
+
+#list of integers 1 through 99.
+y = c(1:99)
+
+#z-scores of dataset of 99 values if perfectly normally distributed
+normy = qnorm(y/100)
+
+plot(x~normy)
+abline(0,1)
+```
+
+```{r}
+x <- rnorm(54, 0, 18.26)
+qqnorm(x)
+qqline(x)
+```

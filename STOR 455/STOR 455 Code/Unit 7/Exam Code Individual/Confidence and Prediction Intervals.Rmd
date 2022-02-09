@@ -1,0 +1,43 @@
+---
+title: "Homework 9 - Topic 5"
+author: "Rhea Bhagia, Meghna Sharma, Olivia Voss, Connor Hammond"
+date: "11/28/2021"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(Stat2Data)
+```
+
+```{r}
+SleepStudy <- read.csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/SleepStudy.csv")
+```
+
+*Question*: Construct 90% confidence and prediction intervals to assess the interval for average hours of sleep for all days for a first year and fourth year student. Interpret your findings in context.
+
+
+```{r}
+SleepStudy_mod = lm(AverageSleep ~ factor(ClassYear), data=SleepStudy)
+
+first_year = data.frame(ClassYear = 1)
+fourth_year = data.frame(ClassYear = 4)
+  
+predict.lm(SleepStudy_mod, first_year, interval = "confidence", level = 0.90 )
+predict.lm(SleepStudy_mod, first_year, interval = "prediction", level = 0.90 )
+
+predict.lm(SleepStudy_mod, fourth_year, interval = "confidence", level = 0.90 )
+predict.lm(SleepStudy_mod, fourth_year, interval = "prediction", level = 0.90 )
+```
+We are 90% confident that a first year student will sleep on average 7.691953 to 8.158685 hours every night. 
+
+We can predict 90% of the time that a first year student will sleep on average between 6.30851 and 9.542129 hours a night. 
+
+We are 90% confident that a fourth year student will sleep on average 7.738091 to 8.161909 hours every night. 
+
+We can predict 90% of the time that a first year student will sleep on average between 6.336148 and 9.563852 hours a night. 
+
+
+ 

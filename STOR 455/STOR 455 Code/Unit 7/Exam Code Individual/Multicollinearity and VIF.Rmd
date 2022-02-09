@@ -1,0 +1,44 @@
+---
+title: "R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+---
+
+```{r}
+library(readr)
+Sleep = read.csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/SleepStudy.csv
+")
+library(Stat2Data)
+data("CountyHealth") ##from Stat2Data
+```
+1. Create a linear model using GPA as the response and AlcoholUse, DepressionStatus, Happiness and Drinks as predictors.
+```{r}
+mod1 = lm(GPA~AlcoholUse+Drinks+DepressionStatus+Happiness, data=Sleep)
+summary(mod1)
+```
+2. Compute the VIF values for the model
+```{r}
+library(car)
+vif(mod1)
+```
+Since the vif values are less than 5, this suggests there is not multicollinearity between the predictors, where multicollinearity is when one or more of the predictors is strongly correlated with some combination of the other predictors in the set.
+
+##Using CountyHealth dataset
+3. Construct a linear model using the number of Doctors in a county, MDs, as the response and number of hospitals in the county, Hospitals, and the number of beds in the county, Beds, as predictors
+```{r}
+mod2 = lm(MDs~Hospitals+Beds, data=CountyHealth)
+summary(mod2)
+```
+4. Create a correlation matrix to look for multicollinearity between the Hospitals and Bed predictors
+```{r}
+cor(CountyHealth[,3:4])
+```
+The correlation is 0.9 which is close to 1 so they are highly correlated and therefore explain the same kind of variability i.e. show multicollinearity.
+
+5. Compute the VIF values for the model
+```{r}
+library(car)
+vif(mod2)
+```
+Since the vif values are greater than 5, this suggests multicollinearity. So you should consider removing one of the variables from the model.

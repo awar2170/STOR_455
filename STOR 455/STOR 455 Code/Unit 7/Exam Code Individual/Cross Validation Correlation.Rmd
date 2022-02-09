@@ -1,0 +1,73 @@
+---
+title: "STOR 455 Cross Validation Correlation Practice"
+output:
+  word_document: default
+  html_notebook: default
+---
+
+The data in FirstYearGPA contains information on 219 college students. 
+
+Variable Description
+HSGPA        | High school GPA
+SATV         | Verbal/critical reading SAT score
+SATM         | Math SAT score
+Male         | 1 for male, 0 for female
+HU           | Number of credit hours earned in humanities courses in high school
+SS           | Number of credit hours earned in social science courses in high school
+FirstGen     | 1 if the student is the first in her or his family to attend college
+White        | 1 for white students, 0 for others
+CollegeBound | 1 if attended a high school where of students intend to go on to college
+
+```{r}
+library(Stat2Data)
+data("FirstYearGPA")
+```
+
+```{r}
+#Creating training sample
+GPATrain = data.frame(FirstYearGPA[c(0:150),])
+
+#Creating holdout sample
+GPAHoldout = data.frame(FirstYearGPA[c(150:219),])
+```
+
+
+a. Use the training sample to fit a multiple regression to predict GPA using HSGPA, HU, and White. Compute the predicted GPA for each case in the holdout sample using this model, then compute the residuals for each of the holdout cases.
+
+
+```{r}
+GPAModel = lm(GPA~HSGPA + HU + factor(White), data=GPATrain)
+fitGPA = predict(GPAModel, newdata=GPAHoldout)
+GPAResid = GPAHoldout$GPA-fitGPA
+GPAResid
+```
+
+b. Compute the mean and standard deviation for the residuals. Is the mean reasonably close to zero? Is the standard deviation reasonably close to the standard deviation of the error term from the fit to the training sample?
+
+```{r}
+mean(GPAResid)
+sd(GPAResid)
+
+summary(GPAModel)
+```
+The mean of -0.06760761 is reasonably close to 0. The standard deviation of the residuals of 0.4092978 is quite close to the standard deviation from our model of 0.3773. This points to our model being a good predictor of GPA in general, not just for our specific training sample.
+
+c. Compute the cross-validation correlation between the actual and predicted GPA values for the cases in the holdout sample.
+
+```{r}
+crosscor = cor(GPAHoldout$GPA, fitGPA)
+crosscor
+```
+
+
+d. Square the cross-validation correlation and subtract from for the training sample to compute the shrinkage. Does it look like the training model works reasonably well for the holdout sample or has there been a considerable drop in the amount of variability explained?
+
+```{r}
+crosscor^2
+
+summary(GPAModel)$r.squared - crosscor^2
+```
+The shrinkage here is actually a negative value, which means that my model created from the training data actually predicts GPA from the holdout model better than the original training data. The values in the holdout model are predicted around 5% better than the training model values, which is not a considerable problem as it is less than 10% and does not point to a significant difference in the effectiveness of model prediction between two datasets.
+
+
+

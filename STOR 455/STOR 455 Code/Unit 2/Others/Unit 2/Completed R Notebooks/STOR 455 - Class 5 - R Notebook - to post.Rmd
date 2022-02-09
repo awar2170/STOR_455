@@ -1,0 +1,75 @@
+---
+title: "STOR 455 Class 5 R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+ 
+```{r message=FALSE, warning=FALSE}
+# message=FALSE, warning=FALSE suppress warnings and messages from appearing in knitted files
+
+library(readr)
+library(Stat2Data)
+```
+
+```{r}
+data("SpeciesArea")
+
+plot(Species~Area, data=SpeciesArea)
+SpeciesModel=lm(Species~Area, data=SpeciesArea)
+abline(SpeciesModel)
+
+plot(SpeciesModel$residuals~SpeciesModel$fitted.values)
+abline(0,0)
+```
+
+```{r}
+max(SpeciesModel$residuals)
+which.max(SpeciesModel$residuals)
+
+SpeciesArea[3,]
+
+SpeciesArea[SpeciesArea$Name=="Java",]
+```
+
+```{r}
+plot(log(Species)~log(Area), data=SpeciesArea)
+SpeciesModel2=lm(log(Species)~log(Area), data=SpeciesArea)
+abline(SpeciesModel2)
+
+summary(SpeciesModel2)
+
+plot(SpeciesModel2, 1:2)
+```
+
+```{r}
+B0 = summary(SpeciesModel2)$coefficients[1,1]
+B1 = summary(SpeciesModel2)$coefficients[2,1]
+
+plot(Species~Area, data=SpeciesArea)
+curve(exp(B0)*x^B1, add=TRUE)
+```
+
+
+```{r}
+data("SeaIce")
+head(SeaIce)
+```
+
+```{r}
+plot(Extent~t, data = SeaIce)
+IceModel1=lm(Extent~t, data = SeaIce)
+abline(IceModel1)
+```
+
+```{r}
+plot(IceModel1$residuals~IceModel1$fitted.values)
+abline(0,0)
+
+abline(v=c(5.65,6.52), 
+       col=c("red", "red"), 
+       lty=c(2,2), 
+       lwd=c(1, 1)) #Draws red dashed vertical lines
+
+plot(IceModel1, 1:2)
+```

@@ -1,0 +1,55 @@
+---
+title: "Methods for Choosing Predictors"
+author: "Alyssa Warnock, Helen Johnston, Ashley Wade, Hunter Barbee"
+date: "11/28/2021"
+output:
+  word_document: default
+  html_document: default
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Consider the SleepStudy file described on Sakai.  In this exercise, you will consider models to predict Grade Point Average (GPA) using any of the predictors.  
+```{r}
+sleep <- read.csv("https://raw.githubusercontent.com/JA-McLean/STOR455/master/data/SleepStudy.csv")
+
+source("https://raw.githubusercontent.com/JA-McLean/STOR455/master/scripts/ShowSubsets.R")
+
+Full=lm(GPA~factor(Gender)+factor(ClassYear)+factor(EarlyClass) + LarkOwl + NumEarlyClass + ClassesMissed + CognitionZscore + PoorSleepQuality + DepressionScore + AnxietyScore + StressScore + DepressionStatus + AnxietyStatus + Stress + DASScore + Happiness + AlcoholUse + Drinks + WeekdayBed + WeekdayRise + WeekdaySleep + WeekendBed + WeekendRise + WeekendSleep + AverageSleep + AllNighter, data=sleep)
+```
+
+
+Use forward selection until you have a  model for GPA.  
+```{r}
+none=lm(GPA~1,data=sleep)
+
+MSE=(summary(Full)$sigma)^2
+   #Specify the direction
+step(none,scope=list(upper=Full),scale=MSE, direction= "forward", trace = FALSE)
+```
+
+Use backwards elimination until you have a model for GPA.   
+```{r}
+Full=lm(GPA~factor(Gender)+factor(ClassYear)+factor(EarlyClass) + LarkOwl + NumEarlyClass + ClassesMissed + CognitionZscore + PoorSleepQuality + DepressionScore + AnxietyScore + StressScore + DepressionStatus + AnxietyStatus + Stress + DASScore + Happiness + AlcoholUse + Drinks + WeekdayBed + WeekdayRise + WeekdaySleep + WeekendBed + WeekendRise + WeekendSleep + AverageSleep + AllNighter, data=sleep)
+# Find the MSE for the full model
+
+MSE=(summary(Full)$sigma)^2
+# Backward: use the step( ) command starting with the full model
+#MSE = variance of the residuals 
+
+step(Full,scale=MSE, trace = FALSE)
+```
+
+Use a “best subsets” procedure to determine which predictors would explain the most variability in GPA.  
+
+```{r}
+source("https://raw.githubusercontent.com/JA-McLean/STOR455/master/scripts/ShowSubsets.R")
+library(leaps)
+all=regsubsets(GPA~factor(Gender)+factor(ClassYear)+factor(EarlyClass) + LarkOwl + NumEarlyClass + ClassesMissed + CognitionZscore + PoorSleepQuality + DepressionScore + AnxietyScore + StressScore + DepressionStatus + AnxietyStatus + Stress + DASScore + Happiness + AlcoholUse + Drinks + WeekdayBed + WeekdayRise + WeekdaySleep + WeekendBed + WeekendRise + WeekendSleep + AverageSleep + AllNighter, data= sleep, nvmax=26)
+ShowSubsets(all)
+```
+Predictors: factor(ClassYear), ClassesMissed, CognitionZscore,  PoorSleepQuality, StressScore, DASScore, Drinks, WeekdaySleep, WeekendRise, AllNighter.
+
